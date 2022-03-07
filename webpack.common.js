@@ -21,5 +21,12 @@ module.exports = {
     filename: 'bundle.js',
     clean: true,
   },
+  externals: {
+    dotenv: 'commonjs dotenv',
+    koa: 'commonjs koa',
+    'koa-bodyparser': 'commonjs koa-bodyparser',
+    'koa-router': 'commonjs koa-router',
+    sqlite3: 'commonjs sqlite3',
+  },
   plugins: [new webpack.ProgressPlugin()],
 };
