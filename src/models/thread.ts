@@ -3,10 +3,12 @@ import Board from './board';
 import IBoardRepository from './board-repository';
 import Post from './post';
 import IPostRepository from './post-repository';
+import IThreadRepository from './thread-repository';
 
 export class Thread {
   public static readonly MAX_NAME_LENGTH = 40;
   public static readonly MAX_MESSAGE_LENGTH = 8000;
+  public static readonly BUMP_LIMIT = 500;
 
   public constructor(
     public readonly id: number,
@@ -14,12 +16,14 @@ export class Thread {
     public readonly name: string,
     public readonly message: string,
     public readonly ip: string,
+    public readonly postCount: number,
     public readonly createdAt: Date,
     public readonly bumpedAt: Date
   ) {}
 
   public async createPost(
     boardRepository: IBoardRepository,
+    threadRepository: IThreadRepository,
     postRepository: IPostRepository,
     name: string,
     message: string,
@@ -46,7 +50,12 @@ export class Thread {
     try {
       await postRepository.begin();
       post = await postRepository.add(this.board.id, this.id, name, message, ip);
-      await boardRepository.incrementPostCount(this.id);
+      await boardRepository.incrementPostCount(this.board.id);
+      await threadRepository.incrementPostCount(this.id);
+      if (this.postCount < Thread.BUMP_LIMIT) {
+        await threadRepository.bumpThread(this.id);
+      }
+
       await postRepository.commit();
     } catch (err) {
       await postRepository.rollback();

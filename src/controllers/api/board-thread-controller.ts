@@ -9,9 +9,9 @@ interface ThreadDto {
   readonly slug: string;
   readonly name: string;
   readonly message: string;
-  readonly ip: string;
   readonly created_at: string;
   readonly bumped_at: string;
+  readonly post_count: number;
 }
 
 export class BoardThreadController {
@@ -83,7 +83,7 @@ export class BoardThreadController {
       slug: thread.board.slug,
       name: thread.name,
       message: thread.message,
-      ip: thread.ip,
+      post_count: +thread.postCount,
       created_at: thread.createdAt.toISOString(),
       bumped_at: thread.bumpedAt.toISOString(),
     };

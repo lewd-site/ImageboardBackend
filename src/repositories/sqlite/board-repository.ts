@@ -78,7 +78,7 @@ export class BoardRepository extends Repository implements IBoardRepository {
       WHERE id = ?`;
 
     await this.runAsync(sql, [id]);
-    return board;
+    return await this.read(id);
   }
 
   public async add(slug: string, title: string): Promise<Board | null> {

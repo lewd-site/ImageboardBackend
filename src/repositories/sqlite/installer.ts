@@ -20,7 +20,8 @@ export function setupDatabase(db: sqlite3.Database) {
       message TEXT NOT NULL,
       ip TEXT NOT NULL,
       created_at INTEGER NOT NULL,
-      bumped_at INTEGER
+      bumped_at INTEGER,
+      post_count INTEGER
     )`);
 
     db.run(`CREATE INDEX IF NOT EXISTS posts_board_id_idx ON posts (board_id)`);

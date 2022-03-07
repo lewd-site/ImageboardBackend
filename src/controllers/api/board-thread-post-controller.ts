@@ -11,7 +11,6 @@ interface PostDto {
   readonly parent_id: number;
   readonly name: string;
   readonly message: string;
-  readonly ip: string;
   readonly created_at: string;
 }
 
@@ -77,7 +76,14 @@ export class BoardThreadPostController {
     const name = String(ctx.request.body.name || '');
     const message = String(ctx.request.body.message || '');
     const ip = ctx.request.ip;
-    const post = await thread.createPost(this.boardRepository, this.postRepository, name, message, ip);
+    const post = await thread.createPost(
+      this.boardRepository,
+      this.threadRepository,
+      this.postRepository,
+      name,
+      message,
+      ip
+    );
 
     ctx.status = 201;
     ctx.set('Location', `/api/v1/boards/${board.slug}/threads/${thread.id}/posts/${post.id}`);
@@ -109,7 +115,6 @@ export class BoardThreadPostController {
       parent_id: +post.parentId,
       name: post.name,
       message: post.message,
-      ip: post.ip,
       created_at: post.createdAt.toISOString(),
     };
   }

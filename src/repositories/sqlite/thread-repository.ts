@@ -13,6 +13,7 @@ interface ThreadDto {
   readonly name: string;
   readonly message: string;
   readonly ip: string;
+  readonly post_count: number;
   readonly created_at: number;
   readonly bumped_at: number;
 }
@@ -71,9 +72,37 @@ export class ThreadRepository extends Repository implements IThreadRepository {
     return this.convertDtoToModel(row);
   }
 
+  public async incrementPostCount(id: number): Promise<Thread | null> {
+    const thread = await this.read(id);
+    if (thread === null) {
+      return null;
+    }
+
+    const sql = `UPDATE posts
+      SET post_count = post_count + 1
+      WHERE id = ?`;
+
+    await this.runAsync(sql, [id]);
+    return await this.read(id);
+  }
+
+  public async bumpThread(id: number): Promise<Thread | null> {
+    const thread = await this.read(id);
+    if (thread === null) {
+      return null;
+    }
+
+    const sql = `UPDATE posts
+      SET bumped_at = strftime('%s','now')
+      WHERE id = ?`;
+
+    await this.runAsync(sql, [id]);
+    return await this.read(id);
+  }
+
   public async add(boardId: number, name: string, message: string, ip: string): Promise<Thread | null> {
-    const sql = `INSERT INTO posts(board_id, parent_id, name, message, ip, created_at, bumped_at)
-      VALUES (?, NULL, ?, ?, ?, strftime('%s','now'), strftime('%s','now'))`;
+    const sql = `INSERT INTO posts(board_id, parent_id, name, message, ip, post_count, created_at, bumped_at)
+      VALUES (?, NULL, ?, ?, ?, 1, strftime('%s','now'), strftime('%s','now'))`;
 
     const result = await this.runAsync(sql, [boardId, name, message, ip]);
     return this.read(result.lastID);
@@ -105,6 +134,7 @@ export class ThreadRepository extends Repository implements IThreadRepository {
       dto.name,
       dto.message,
       dto.ip,
+      +dto.post_count,
       new Date(dto.created_at * ThreadRepository.MS_IN_SECOND),
       new Date(dto.bumped_at * ThreadRepository.MS_IN_SECOND)
     );
