@@ -42,7 +42,7 @@ export class BoardController {
     }
 
     ctx.status = 201;
-    ctx.set('Location', `/api/v1/boards/${board.id}`);
+    ctx.set('Location', `/api/v1/boards/${board.slug}`);
     ctx.body = { item: this.convertModelToDto(board) };
   };
 
@@ -73,7 +73,7 @@ export class BoardController {
       slug: board.slug,
       title: board.title,
       created_at: board.createdAt.toISOString(),
-      post_count: board.postCount,
+      post_count: +board.postCount,
     };
   }
 }

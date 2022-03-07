@@ -1,6 +1,6 @@
-import * as sqlite3 from 'sqlite3';
 import Board from '../../models/board';
 import IBoardRepository from '../../models/board-repository';
+import Repository from './repository';
 
 interface BoardDto {
   readonly id: number;
@@ -10,70 +10,47 @@ interface BoardDto {
   readonly created_at: number;
 }
 
-export class BoardRepository implements IBoardRepository {
+export class BoardRepository extends Repository implements IBoardRepository {
   protected static readonly PER_PAGE = 100;
   protected static readonly MS_IN_SECOND = 1000;
 
-  public constructor(protected readonly db: sqlite3.Database) {}
-
-  public browse(page: number = 0): Promise<Board[]> {
+  public async browse(page: number = 0): Promise<Board[]> {
     const limit = BoardRepository.PER_PAGE;
     const offset = Math.max(0, Math.floor(page)) * BoardRepository.PER_PAGE;
     const sql = `SELECT * FROM boards
-      ORDER BY post_count DESC, created_at DESC
+      ORDER BY post_count DESC, id DESC
       LIMIT ${limit} OFFSET ${offset}`;
 
-    return new Promise((resolve, reject) => {
-      this.db.all(sql, (err, rows) => {
-        if (err !== null) {
-          return reject(err);
-        }
-
-        resolve(rows.map(this.convertDtoToModel));
-      });
-    });
+    const { rows } = await this.allAsync(sql);
+    return rows.map(this.convertDtoToModel);
   }
 
-  public read(id: number): Promise<Board | null> {
+  public async read(id: number): Promise<Board | null> {
     const sql = `SELECT * FROM boards
       WHERE id = ?
       ORDER BY id DESC
       LIMIT 1`;
 
-    return new Promise((resolve, reject) => {
-      this.db.get(sql, [id], (err, row) => {
-        if (err !== null) {
-          return reject(err);
-        }
+    const { row } = await this.getAsync(sql, [id]);
+    if (row === null) {
+      return null;
+    }
 
-        if (typeof row === 'undefined') {
-          return resolve(null);
-        }
-
-        resolve(this.convertDtoToModel(row));
-      });
-    });
+    return this.convertDtoToModel(row);
   }
 
-  public readBySlug(slug: string): Promise<Board | null> {
+  public async readBySlug(slug: string): Promise<Board | null> {
     const sql = `SELECT * FROM boards
       WHERE slug = ?
       ORDER BY id DESC
       LIMIT 1`;
 
-    return new Promise((resolve, reject) => {
-      this.db.get(sql, [slug], (err, row) => {
-        if (err !== null) {
-          return reject(err);
-        }
+    const { row } = await this.getAsync(sql, [slug]);
+    if (row === null) {
+      return null;
+    }
 
-        if (typeof row === 'undefined') {
-          return resolve(null);
-        }
-
-        resolve(this.convertDtoToModel(row));
-      });
-    });
+    return this.convertDtoToModel(row);
   }
 
   public async edit(id: number, slug: string, title: string): Promise<Board | null> {
@@ -86,30 +63,30 @@ export class BoardRepository implements IBoardRepository {
       SET slug = ?, title = ?
       WHERE id = ?`;
 
-    return new Promise((resolve, reject) => {
-      this.db.run(sql, [slug, title, id], (err) => {
-        if (err !== null) {
-          return reject(err);
-        }
-
-        resolve(this.readBySlug(slug));
-      });
-    });
+    await this.runAsync(sql, [slug, title, id]);
+    return this.readBySlug(slug);
   }
 
-  public add(slug: string, title: string): Promise<Board | null> {
+  public async incrementPostCount(id: number): Promise<Board | null> {
+    const board = await this.read(id);
+    if (board === null) {
+      return null;
+    }
+
+    const sql = `UPDATE boards
+      SET post_count = post_count + 1
+      WHERE id = ?`;
+
+    await this.runAsync(sql, [id]);
+    return board;
+  }
+
+  public async add(slug: string, title: string): Promise<Board | null> {
     const sql = `INSERT INTO boards(slug, title, post_count, created_at)
       VALUES (?, ?, 0, strftime('%s','now'))`;
 
-    return new Promise((resolve, reject) => {
-      this.db.run(sql, [slug, title], (err) => {
-        if (err !== null) {
-          return reject(err);
-        }
-
-        resolve(this.readBySlug(slug));
-      });
-    });
+    await this.runAsync(sql, [slug, title]);
+    return this.readBySlug(slug);
   }
 
   public async delete(id: number): Promise<Board | null> {
@@ -121,24 +98,17 @@ export class BoardRepository implements IBoardRepository {
     const sql = `DELETE FROM boards
       WHERE id = ?`;
 
-    return new Promise((resolve, reject) => {
-      this.db.run(sql, [id], (err) => {
-        if (err !== null) {
-          return reject(err);
-        }
-
-        resolve(board);
-      });
-    });
+    await this.runAsync(sql, [id]);
+    return board;
   }
 
   protected convertDtoToModel(dto: BoardDto): Board {
     return new Board(
-      dto.id,
+      +dto.id,
       dto.slug,
       dto.title,
       new Date(dto.created_at * BoardRepository.MS_IN_SECOND),
-      dto.post_count
+      +dto.post_count
     );
   }
 }
