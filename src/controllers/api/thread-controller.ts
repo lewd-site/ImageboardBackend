@@ -1,13 +1,16 @@
-import * as Koa from 'koa';
+import Koa from 'koa';
 import { NotFoundError } from '../../errors';
 import IBoardRepository from '../../models/board-repository';
 import Thread from '../../models/thread';
 import IThreadRepository from '../../models/thread-repository';
+import ITripcodeGenerator from '../../models/tripcode-generator';
 
 interface ThreadDto {
   readonly id: number;
   readonly slug: string;
-  readonly name: string;
+  readonly subject: string | null;
+  readonly name: string | null;
+  readonly tripcode: string | null;
   readonly message: string;
   readonly created_at: string;
   readonly bumped_at: string;
@@ -17,7 +20,8 @@ interface ThreadDto {
 export class ThreadController {
   public constructor(
     protected readonly boardRepository: IBoardRepository,
-    protected readonly threadRepository: IThreadRepository
+    protected readonly threadRepository: IThreadRepository,
+    protected readonly tripcodeGenerator: ITripcodeGenerator
   ) {}
 
   public index = async (ctx: Koa.Context) => {
@@ -43,10 +47,19 @@ export class ThreadController {
       throw new NotFoundError('slug');
     }
 
+    const subject = String(ctx.request.body.subject || '');
     const name = String(ctx.request.body.name || '');
     const message = String(ctx.request.body.message || '');
     const ip = ctx.request.ip;
-    const thread = await board.createThread(this.boardRepository, this.threadRepository, name, message, ip);
+    const thread = await board.createThread(
+      this.boardRepository,
+      this.threadRepository,
+      this.tripcodeGenerator,
+      subject,
+      name,
+      message,
+      ip
+    );
 
     ctx.status = 201;
     ctx.set('Location', `/api/v1/threads/${thread.id}`);
@@ -73,7 +86,9 @@ export class ThreadController {
     return {
       id: +thread.id,
       slug: thread.board.slug,
+      subject: thread.subject,
       name: thread.name,
+      tripcode: thread.tripcode,
       message: thread.message,
       created_at: thread.createdAt.toISOString(),
       bumped_at: thread.bumpedAt.toISOString(),

@@ -1,4 +1,4 @@
-import * as Koa from 'koa';
+import Koa from 'koa';
 import { NotFoundError } from '../../errors';
 import Board from '../../models/board';
 import BoardManager from '../../models/board-manager';

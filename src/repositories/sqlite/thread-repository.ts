@@ -10,8 +10,13 @@ interface ThreadDto {
   readonly board_title: string;
   readonly board_created_at: number;
   readonly board_post_count: number;
-  readonly name: string;
+  readonly subject: string | null;
+  readonly name_id: number | null;
+  readonly name: string | null;
+  readonly tripcode_id: number | null;
+  readonly tripcode: string | null;
   readonly message: string;
+  readonly ip_id: number;
   readonly ip: string;
   readonly post_count: number;
   readonly created_at: number;
@@ -27,9 +32,15 @@ export class ThreadRepository extends Repository implements IThreadRepository {
     const offset = Math.max(0, Math.floor(page)) * ThreadRepository.PER_PAGE;
     const sql = `SELECT
         p.*,
-        b.id as board_id, b.slug as board_slug, b.title as board_title, b.created_at as board_created_at, b.post_count as board_post_count
+        b.id as board_id, b.slug as board_slug, b.title as board_title, b.created_at as board_created_at, b.post_count as board_post_count,
+        n.name,
+        t.tripcode,
+        i.ip
       FROM posts p
       INNER JOIN boards b ON b.id = p.board_id
+      LEFT JOIN names n ON n.id = p.name_id
+      LEFT JOIN tripcodes t ON t.id = p.tripcode_id
+      INNER JOIN ips i ON i.id = p.ip_id
       WHERE p.parent_id IS NULL
       ORDER BY p.bumped_at DESC, p.id DESC
       LIMIT ${limit} OFFSET ${offset}`;
@@ -43,9 +54,15 @@ export class ThreadRepository extends Repository implements IThreadRepository {
     const offset = Math.max(0, Math.floor(page)) * ThreadRepository.PER_PAGE;
     const sql = `SELECT
         p.*,
-        b.id as board_id, b.slug as board_slug, b.title as board_title, b.created_at as board_created_at, b.post_count as board_post_count
+        b.id as board_id, b.slug as board_slug, b.title as board_title, b.created_at as board_created_at, b.post_count as board_post_count,
+        n.name,
+        t.tripcode,
+        i.ip
       FROM posts p
       INNER JOIN boards b ON b.id = p.board_id
+      LEFT JOIN names n ON n.id = p.name_id
+      LEFT JOIN tripcodes t ON t.id = p.tripcode_id
+      INNER JOIN ips i ON i.id = p.ip_id
       WHERE p.board_id = ? AND p.parent_id IS NULL
       ORDER BY p.bumped_at DESC, p.id DESC
       LIMIT ${limit} OFFSET ${offset}`;
@@ -57,9 +74,15 @@ export class ThreadRepository extends Repository implements IThreadRepository {
   public async read(id: number): Promise<Thread | null> {
     const sql = `SELECT
         p.*,
-        b.id as board_id, b.slug as board_slug, b.title as board_title, b.created_at as board_created_at, b.post_count as board_post_count
+        b.id as board_id, b.slug as board_slug, b.title as board_title, b.created_at as board_created_at, b.post_count as board_post_count,
+        n.name,
+        t.tripcode,
+        i.ip
       FROM posts p
       INNER JOIN boards b ON b.id = p.board_id
+      LEFT JOIN names n ON n.id = p.name_id
+      LEFT JOIN tripcodes t ON t.id = p.tripcode_id
+      INNER JOIN ips i ON i.id = p.ip_id
       WHERE p.id = ? AND p.parent_id IS NULL
       ORDER BY p.id DESC
       LIMIT 1`;
@@ -100,12 +123,56 @@ export class ThreadRepository extends Repository implements IThreadRepository {
     return await this.read(id);
   }
 
-  public async add(boardId: number, name: string, message: string, ip: string): Promise<Thread | null> {
-    const sql = `INSERT INTO posts(board_id, parent_id, name, message, ip, post_count, created_at, bumped_at)
-      VALUES (?, NULL, ?, ?, ?, 1, strftime('%s','now'), strftime('%s','now'))`;
+  public async add(
+    boardId: number,
+    subject: string,
+    name: string,
+    tripcode: string,
+    message: string,
+    ip: string
+  ): Promise<Thread | null> {
+    const sql = `INSERT INTO posts(board_id, parent_id, subject, name_id, tripcode_id, message, ip_id, post_count, created_at, bumped_at)
+      VALUES (?, NULL, ?, ?, ?, ?, ?, 1, strftime('%s','now'), strftime('%s','now'))`;
 
-    const result = await this.runAsync(sql, [boardId, name, message, ip]);
+    const result = await this.runAsync(sql, [
+      boardId,
+      subject.length ? subject : null,
+      name.length ? await this.getNameId(name) : null,
+      tripcode.length ? await this.getTripcodeId(tripcode) : null,
+      message,
+      await this.getIpId(ip),
+    ]);
     return this.read(result.lastID);
+  }
+
+  protected async getNameId(name: string): Promise<number> {
+    const { row } = await this.getAsync(`SELECT id FROM names WHERE name = ?`, [name]);
+    if (row === null) {
+      const statement = await this.runAsync(`INSERT INTO names (name) VALUES (?)`, [name]);
+      return statement.lastID;
+    }
+
+    return row.id;
+  }
+
+  protected async getTripcodeId(tripcode: string): Promise<number> {
+    const { row } = await this.getAsync(`SELECT id FROM tripcodes WHERE tripcode = ?`, [tripcode]);
+    if (row === null) {
+      const statement = await this.runAsync(`INSERT INTO tripcodes (tripcode) VALUES (?)`, [tripcode]);
+      return statement.lastID;
+    }
+
+    return row.id;
+  }
+
+  protected async getIpId(ip: string): Promise<number> {
+    const { row } = await this.getAsync(`SELECT id FROM ips WHERE ip = ?`, [ip]);
+    if (row === null) {
+      const statement = await this.runAsync(`INSERT INTO ips (ip) VALUES (?)`, [ip]);
+      return statement.lastID;
+    }
+
+    return row.id;
   }
 
   public async delete(id: number): Promise<Thread | null> {
@@ -131,7 +198,9 @@ export class ThreadRepository extends Repository implements IThreadRepository {
         new Date(+dto.board_created_at * ThreadRepository.MS_IN_SECOND),
         +dto.board_post_count
       ),
+      dto.subject,
       dto.name,
+      dto.tripcode,
       dto.message,
       dto.ip,
       +dto.post_count,

@@ -1,8 +1,8 @@
-import * as http from 'http';
-import * as Koa from 'koa';
-import * as bodyParser from 'koa-bodyparser';
-import * as Router from 'koa-router';
-import * as sqlite3 from 'sqlite3';
+import http from 'http';
+import Koa from 'koa';
+import bodyParser from 'koa-bodyparser';
+import Router from 'koa-router';
+import sqlite3 from 'sqlite3';
 import config from './config';
 import BoardController from './controllers/api/board-controller';
 import BoardThreadController from './controllers/api/board-thread-controller';
@@ -17,6 +17,7 @@ import BoardRepository from './repositories/sqlite/board-repository';
 import { setupDatabase } from './repositories/sqlite/installer';
 import PostRepository from './repositories/sqlite/post-repository';
 import ThreadRepository from './repositories/sqlite/thread-repository';
+import { WakabaTripcodeGenerator } from './wakaba-tripcode-generator';
 
 const db = new sqlite3.Database(config.db.path, sqlite3.OPEN_CREATE | sqlite3.OPEN_READWRITE);
 setupDatabase(db);
@@ -26,13 +27,26 @@ const threadRepository = new ThreadRepository(db);
 const postRepository = new PostRepository(db);
 
 const boardManager = new BoardManager();
+const tripcodeGenerator = new WakabaTripcodeGenerator();
 
 const boardController = new BoardController(boardRepository, boardManager);
-const boardThreadController = new BoardThreadController(boardRepository, threadRepository);
-const boardThreadPostController = new BoardThreadPostController(boardRepository, threadRepository, postRepository);
-const threadController = new ThreadController(boardRepository, threadRepository);
-const threadPostController = new ThreadPostController(boardRepository, threadRepository, postRepository);
-const postController = new PostController(boardRepository, threadRepository, postRepository);
+const boardThreadController = new BoardThreadController(boardRepository, threadRepository, tripcodeGenerator);
+const boardThreadPostController = new BoardThreadPostController(
+  boardRepository,
+  threadRepository,
+  postRepository,
+  tripcodeGenerator
+);
+
+const threadController = new ThreadController(boardRepository, threadRepository, tripcodeGenerator);
+const threadPostController = new ThreadPostController(
+  boardRepository,
+  threadRepository,
+  postRepository,
+  tripcodeGenerator
+);
+
+const postController = new PostController(boardRepository, threadRepository, postRepository, tripcodeGenerator);
 
 const router = new Router();
 router.get('/api/v1/boards', boardController.index);

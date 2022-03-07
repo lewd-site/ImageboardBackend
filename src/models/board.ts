@@ -2,6 +2,7 @@ import { NotFoundError, ValidationError } from '../errors';
 import IBoardRepository from './board-repository';
 import Thread from './thread';
 import IThreadRepository from './thread-repository';
+import ITripcodeGenerator from './tripcode-generator';
 
 export class Board {
   public static readonly MAX_SLUG_LENGTH = 20;
@@ -20,6 +21,8 @@ export class Board {
   public async createThread(
     boardRepository: IBoardRepository,
     threadRepository: IThreadRepository,
+    tripcodeGenerator: ITripcodeGenerator,
+    subject: string,
     name: string,
     message: string,
     ip: string
@@ -40,11 +43,13 @@ export class Board {
       throw new ValidationError('message', 'max-length');
     }
 
+    const author = tripcodeGenerator.createTripcode(name);
+
     let thread: Thread | null = null;
 
     try {
       await threadRepository.begin();
-      thread = await threadRepository.add(this.id, name, message, ip);
+      thread = await threadRepository.add(this.id, subject, author.name, author.tripcode, message, ip);
       await boardRepository.incrementPostCount(this.id);
       await threadRepository.commit();
     } catch (err) {

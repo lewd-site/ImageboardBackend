@@ -8,7 +8,8 @@ export class Post {
     public readonly id: number,
     public readonly board: Board,
     public readonly parentId: number,
-    public readonly name: string,
+    public readonly name: string | null,
+    public readonly tripcode: string | null,
     public readonly message: string,
     public readonly ip: string,
     public readonly createdAt: Date

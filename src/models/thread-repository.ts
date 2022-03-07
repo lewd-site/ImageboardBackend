@@ -7,7 +7,14 @@ export interface IThreadRepository extends IRepository {
   read(id: number): Promise<Thread | null>;
   incrementPostCount(id: number): Promise<Thread | null>;
   bumpThread(id: number): Promise<Thread | null>;
-  add(boardId: number, name: string, message: string, ip: string): Promise<Thread | null>;
+  add(
+    boardId: number,
+    subject: string,
+    name: string,
+    tripcode: string,
+    message: string,
+    ip: string
+  ): Promise<Thread | null>;
   delete(id: number): Promise<Thread | null>;
 }
 

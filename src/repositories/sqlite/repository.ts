@@ -1,4 +1,4 @@
-import * as sqlite3 from 'sqlite3';
+import sqlite3 from 'sqlite3';
 
 export abstract class Repository {
   public constructor(protected readonly db: sqlite3.Database) {}

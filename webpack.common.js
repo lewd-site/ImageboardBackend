@@ -26,7 +26,9 @@ module.exports = {
     koa: 'commonjs koa',
     'koa-bodyparser': 'commonjs koa-bodyparser',
     'koa-router': 'commonjs koa-router',
+    md5: 'commonjs md5',
     sqlite3: 'commonjs sqlite3',
+    tripcode: 'commonjs tripcode',
   },
   plugins: [new webpack.ProgressPlugin()],
 };

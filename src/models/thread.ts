@@ -4,6 +4,7 @@ import IBoardRepository from './board-repository';
 import Post from './post';
 import IPostRepository from './post-repository';
 import IThreadRepository from './thread-repository';
+import ITripcodeGenerator from './tripcode-generator';
 
 export class Thread {
   public static readonly MAX_NAME_LENGTH = 40;
@@ -13,7 +14,9 @@ export class Thread {
   public constructor(
     public readonly id: number,
     public readonly board: Board,
-    public readonly name: string,
+    public readonly subject: string | null,
+    public readonly name: string | null,
+    public readonly tripcode: string | null,
     public readonly message: string,
     public readonly ip: string,
     public readonly postCount: number,
@@ -25,6 +28,7 @@ export class Thread {
     boardRepository: IBoardRepository,
     threadRepository: IThreadRepository,
     postRepository: IPostRepository,
+    tripcodeGenerator: ITripcodeGenerator,
     name: string,
     message: string,
     ip: string
@@ -45,11 +49,13 @@ export class Thread {
       throw new ValidationError('message', 'max-length');
     }
 
+    const author = tripcodeGenerator.createTripcode(name);
+
     let post: Post | null = null;
 
     try {
       await postRepository.begin();
-      post = await postRepository.add(this.board.id, this.id, name, message, ip);
+      post = await postRepository.add(this.board.id, this.id, author.name, author.tripcode, message, ip);
       await boardRepository.incrementPostCount(this.board.id);
       await threadRepository.incrementPostCount(this.id);
       if (this.postCount < Thread.BUMP_LIMIT) {

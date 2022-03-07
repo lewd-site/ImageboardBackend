@@ -1,4 +1,4 @@
-import * as Koa from 'koa';
+import Koa from 'koa';
 import { ConflictError, NotAuthenticatedError, NotFoundError, ValidationError } from '../errors';
 
 export function errorHandler() {

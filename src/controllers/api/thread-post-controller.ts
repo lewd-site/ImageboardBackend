@@ -1,15 +1,17 @@
-import * as Koa from 'koa';
+import Koa from 'koa';
 import { NotFoundError } from '../../errors';
 import IBoardRepository from '../../models/board-repository';
 import Post from '../../models/post';
 import IPostRepository from '../../models/post-repository';
 import IThreadRepository from '../../models/thread-repository';
+import ITripcodeGenerator from '../../models/tripcode-generator';
 
 interface PostDto {
   readonly id: number;
   readonly slug: string;
   readonly parent_id: number;
-  readonly name: string;
+  readonly name: string | null;
+  readonly tripcode: string | null;
   readonly message: string;
   readonly created_at: string;
 }
@@ -18,7 +20,8 @@ export class ThreadPostController {
   public constructor(
     protected readonly boardRepository: IBoardRepository,
     protected readonly threadRepository: IThreadRepository,
-    protected readonly postRepository: IPostRepository
+    protected readonly postRepository: IPostRepository,
+    protected readonly tripcodeGenerator: ITripcodeGenerator
   ) {}
 
   public index = async (ctx: Koa.Context) => {
@@ -62,6 +65,7 @@ export class ThreadPostController {
       this.boardRepository,
       this.threadRepository,
       this.postRepository,
+      this.tripcodeGenerator,
       name,
       message,
       ip
@@ -90,6 +94,7 @@ export class ThreadPostController {
       slug: post.board.slug,
       parent_id: +post.parentId,
       name: post.name,
+      tripcode: post.tripcode,
       message: post.message,
       created_at: post.createdAt.toISOString(),
     };
