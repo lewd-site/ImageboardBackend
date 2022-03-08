@@ -15,3 +15,5 @@ export class WakabaTripcodeGenerator implements ITripcodeGenerator {
     return { name, tripcode };
   }
 }
+
+export default WakabaTripcodeGenerator;

@@ -1,3 +1,4 @@
+import { Node } from './markup';
 import Post from './post';
 import IRepository from './repository';
 
@@ -11,6 +12,7 @@ export interface IPostRepository extends IRepository {
     name: string,
     tripcode: string,
     message: string,
+    parsedMessage: Node[],
     ip: string
   ): Promise<Post | null>;
   delete(id: number): Promise<Post | null>;

@@ -1,5 +1,6 @@
 import sqlite3 from 'sqlite3';
 import Board from '../../models/board';
+import { Node } from '../../models/markup';
 import Post from '../../models/post';
 import IPostRepository from '../../models/post-repository';
 import PostAttributesRepository from './post-attributes-repository';
@@ -18,6 +19,7 @@ interface PostDto {
   readonly tripcode_id: number | null;
   readonly tripcode: string | null;
   readonly message: string;
+  readonly message_parsed: string;
   readonly ip_id: number;
   readonly ip: string;
   readonly created_at: number;
@@ -98,10 +100,11 @@ export class PostRepository extends Repository implements IPostRepository {
     name: string,
     tripcode: string,
     message: string,
+    parsedMessage: Node[],
     ip: string
   ): Promise<Post | null> {
-    const sql = `INSERT INTO posts(board_id, parent_id, name_id, tripcode_id, message, ip_id, created_at, bumped_at)
-      VALUES (?, ?, ?, ?, ?, ?, strftime('%s','now'), NULL)`;
+    const sql = `INSERT INTO posts(board_id, parent_id, name_id, tripcode_id, message, message_parsed, ip_id, created_at, bumped_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%s','now'), NULL)`;
 
     const result = await this.runAsync(sql, [
       boardId,
@@ -109,6 +112,7 @@ export class PostRepository extends Repository implements IPostRepository {
       name.length ? await this.postAttributesRepository.readOrAddName(name) : null,
       tripcode.length ? await this.postAttributesRepository.readOrAddTripcode(tripcode) : null,
       message,
+      JSON.stringify(parsedMessage),
       await this.postAttributesRepository.readOrAddIp(ip),
     ]);
 
@@ -142,6 +146,7 @@ export class PostRepository extends Repository implements IPostRepository {
       dto.name,
       dto.tripcode,
       dto.message,
+      JSON.parse(dto.message_parsed),
       dto.ip,
       new Date(dto.created_at * PostRepository.MS_IN_SECOND)
     );

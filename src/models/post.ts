@@ -1,4 +1,5 @@
 import Board from './board';
+import { Node } from './markup';
 
 export class Post {
   public static readonly MAX_NAME_LENGTH = 40;
@@ -11,6 +12,7 @@ export class Post {
     public readonly name: string | null,
     public readonly tripcode: string | null,
     public readonly message: string,
+    public readonly parsedMessage: Node[],
     public readonly ip: string,
     public readonly createdAt: Date
   ) {}

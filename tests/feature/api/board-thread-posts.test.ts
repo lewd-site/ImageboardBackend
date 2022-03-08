@@ -38,6 +38,7 @@ test('create post', async () => {
       name: 'Tester',
       tripcode: null,
       message: 'Test reply 1',
+      message_parsed: [{ type: 'text', text: 'Test reply 1' }],
       created_at: expect.any(String),
     },
   });
@@ -71,6 +72,7 @@ test('get posts', async () => {
         name: 'Tester',
         tripcode: null,
         message: 'Test thread 1',
+        message_parsed: [{ type: 'text', text: 'Test thread 1' }],
         created_at: expect.any(String),
       },
       {
@@ -80,6 +82,7 @@ test('get posts', async () => {
         name: 'Tester',
         tripcode: null,
         message: 'Test reply 1',
+        message_parsed: [{ type: 'text', text: 'Test reply 1' }],
         created_at: expect.any(String),
       },
       {
@@ -89,6 +92,7 @@ test('get posts', async () => {
         name: 'Tester',
         tripcode: null,
         message: 'Test reply 2',
+        message_parsed: [{ type: 'text', text: 'Test reply 2' }],
         created_at: expect.any(String),
       },
     ],
@@ -122,6 +126,7 @@ test('get post', async () => {
       name: 'Tester',
       tripcode: null,
       message: 'Test reply 2',
+      message_parsed: [{ type: 'text', text: 'Test reply 2' }],
       created_at: expect.any(String),
     },
   });
@@ -182,6 +187,7 @@ test('delete post', async () => {
       name: 'Tester',
       tripcode: null,
       message: 'Test reply 2',
+      message_parsed: [{ type: 'text', text: 'Test reply 2' }],
       created_at: expect.any(String),
     },
   });

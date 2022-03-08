@@ -35,6 +35,7 @@ export function setupDatabase(db: sqlite3.Database) {
       name_id INTEGER REFERENCES names (id) ON DELETE RESTRICT,
       tripcode_id INTEGER REFERENCES tripcodes (id) ON DELETE RESTRICT,
       message TEXT NOT NULL,
+      message_parsed TEXT NOT NULL,
       ip_id INTEGER NOT NULL REFERENCES ips (id) ON DELETE RESTRICT,
       created_at INTEGER NOT NULL,
       bumped_at INTEGER,

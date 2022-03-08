@@ -1,6 +1,7 @@
 import { NotFoundError, ValidationError } from '../errors';
 import Board from './board';
 import IBoardRepository from './board-repository';
+import { IParser, ITokenizer, Node } from './markup';
 import Post from './post';
 import IPostRepository from './post-repository';
 import IThreadRepository from './thread-repository';
@@ -18,6 +19,7 @@ export class Thread {
     public readonly name: string | null,
     public readonly tripcode: string | null,
     public readonly message: string,
+    public readonly parsedMessage: Node[],
     public readonly ip: string,
     public readonly postCount: number,
     public readonly createdAt: Date,
@@ -29,6 +31,8 @@ export class Thread {
     threadRepository: IThreadRepository,
     postRepository: IPostRepository,
     tripcodeGenerator: ITripcodeGenerator,
+    tokenizer: ITokenizer,
+    parser: IParser,
     name: string,
     message: string,
     ip: string
@@ -50,12 +54,14 @@ export class Thread {
     }
 
     const author = tripcodeGenerator.createTripcode(name);
+    const tokens = tokenizer.tokenize(message);
+    const parsedMessage = parser.parse(tokens);
 
     let post: Post | null = null;
 
     try {
       await postRepository.begin();
-      post = await postRepository.add(this.board.id, this.id, author.name, author.tripcode, message, ip);
+      post = await postRepository.add(this.board.id, this.id, author.name, author.tripcode, message, parsedMessage, ip);
       await boardRepository.incrementPostCount(this.board.id);
       await threadRepository.incrementPostCount(this.id);
       if (this.postCount < Thread.BUMP_LIMIT) {

@@ -1,5 +1,6 @@
 import sqlite3 from 'sqlite3';
 import Board from '../../models/board';
+import { Node } from '../../models/markup';
 import Thread from '../../models/thread';
 import IThreadRepository from '../../models/thread-repository';
 import PostAttributesRepository from './post-attributes-repository';
@@ -18,6 +19,7 @@ interface ThreadDto {
   readonly tripcode_id: number | null;
   readonly tripcode: string | null;
   readonly message: string;
+  readonly message_parsed: string;
   readonly ip_id: number;
   readonly ip: string;
   readonly post_count: number;
@@ -135,10 +137,11 @@ export class ThreadRepository extends Repository implements IThreadRepository {
     name: string,
     tripcode: string,
     message: string,
+    parsedMessage: Node[],
     ip: string
   ): Promise<Thread | null> {
-    const sql = `INSERT INTO posts(board_id, parent_id, subject, name_id, tripcode_id, message, ip_id, post_count, created_at, bumped_at)
-      VALUES (?, NULL, ?, ?, ?, ?, ?, 1, strftime('%s','now'), strftime('%s','now'))`;
+    const sql = `INSERT INTO posts(board_id, parent_id, subject, name_id, tripcode_id, message, message_parsed, ip_id, post_count, created_at, bumped_at)
+      VALUES (?, NULL, ?, ?, ?, ?, ?, ?, 1, strftime('%s','now'), strftime('%s','now'))`;
 
     const result = await this.runAsync(sql, [
       boardId,
@@ -146,6 +149,7 @@ export class ThreadRepository extends Repository implements IThreadRepository {
       name.length ? await this.postAttributesRepository.readOrAddName(name) : null,
       tripcode.length ? await this.postAttributesRepository.readOrAddTripcode(tripcode) : null,
       message,
+      JSON.stringify(parsedMessage),
       await this.postAttributesRepository.readOrAddIp(ip),
     ]);
 
@@ -179,6 +183,7 @@ export class ThreadRepository extends Repository implements IThreadRepository {
       dto.name,
       dto.tripcode,
       dto.message,
+      JSON.parse(dto.message_parsed),
       dto.ip,
       +dto.post_count,
       new Date(dto.created_at * ThreadRepository.MS_IN_SECOND),

@@ -1,3 +1,4 @@
+import { Node } from './markup';
 import IRepository from './repository';
 import Thread from './thread';
 
@@ -13,6 +14,7 @@ export interface IThreadRepository extends IRepository {
     name: string,
     tripcode: string,
     message: string,
+    parsedMessage: Node[],
     ip: string
   ): Promise<Thread | null>;
   delete(id: number): Promise<Thread | null>;

@@ -5,6 +5,8 @@ import sqlite3 from 'sqlite3';
 import BoardController from './controllers/api/board-controller';
 import ThreadController from './controllers/api/thread-controller';
 import PostController from './controllers/api/post-controller';
+import Tokenizer from './markup/tokenizer';
+import Parser from './markup/parser';
 import { auth } from './middleware/auth';
 import { errorHandler } from './middleware/error-handler';
 import BoardManager from './models/board-manager';
@@ -22,10 +24,27 @@ export function createApp(db: sqlite3.Database) {
 
   const boardManager = new BoardManager();
   const tripcodeGenerator = new WakabaTripcodeGenerator();
+  const tokenizer = new Tokenizer();
+  const parser = new Parser();
 
   const boardController = new BoardController(boardRepository, boardManager);
-  const threadController = new ThreadController(boardRepository, threadRepository, tripcodeGenerator);
-  const postController = new PostController(boardRepository, threadRepository, postRepository, tripcodeGenerator);
+
+  const threadController = new ThreadController(
+    boardRepository,
+    threadRepository,
+    tripcodeGenerator,
+    tokenizer,
+    parser
+  );
+
+  const postController = new PostController(
+    boardRepository,
+    threadRepository,
+    postRepository,
+    tripcodeGenerator,
+    tokenizer,
+    parser
+  );
 
   const router = new Router();
 

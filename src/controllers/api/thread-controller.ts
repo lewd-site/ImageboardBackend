@@ -1,6 +1,7 @@
 import Koa from 'koa';
 import { NotFoundError } from '../../errors';
 import IBoardRepository from '../../models/board-repository';
+import { IParser, ITokenizer, Node } from '../../models/markup';
 import Thread from '../../models/thread';
 import IThreadRepository from '../../models/thread-repository';
 import ITripcodeGenerator from '../../models/tripcode-generator';
@@ -12,6 +13,7 @@ interface ThreadDto {
   readonly name: string | null;
   readonly tripcode: string | null;
   readonly message: string;
+  readonly message_parsed: Node[];
   readonly created_at: string;
   readonly bumped_at: string;
   readonly post_count: number;
@@ -21,7 +23,9 @@ export class ThreadController {
   public constructor(
     protected readonly boardRepository: IBoardRepository,
     protected readonly threadRepository: IThreadRepository,
-    protected readonly tripcodeGenerator: ITripcodeGenerator
+    protected readonly tripcodeGenerator: ITripcodeGenerator,
+    protected readonly tokenizer: ITokenizer,
+    protected readonly parser: IParser
   ) {}
 
   public index = async (ctx: Koa.Context) => {
@@ -75,6 +79,8 @@ export class ThreadController {
       this.boardRepository,
       this.threadRepository,
       this.tripcodeGenerator,
+      this.tokenizer,
+      this.parser,
       subject,
       name,
       message,
@@ -111,6 +117,7 @@ export class ThreadController {
       name: thread.name,
       tripcode: thread.tripcode,
       message: thread.message,
+      message_parsed: thread.parsedMessage,
       post_count: +thread.postCount,
       created_at: thread.createdAt.toISOString(),
       bumped_at: thread.bumpedAt.toISOString(),

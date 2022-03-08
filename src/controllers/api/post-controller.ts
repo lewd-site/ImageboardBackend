@@ -1,6 +1,7 @@
 import Koa from 'koa';
 import { NotFoundError } from '../../errors';
 import IBoardRepository from '../../models/board-repository';
+import { IParser, ITokenizer, Node } from '../../models/markup';
 import Post from '../../models/post';
 import IPostRepository from '../../models/post-repository';
 import IThreadRepository from '../../models/thread-repository';
@@ -13,6 +14,7 @@ interface PostDto {
   readonly name: string | null;
   readonly tripcode: string | null;
   readonly message: string;
+  readonly message_parsed: Node[];
   readonly created_at: string;
 }
 
@@ -21,7 +23,9 @@ export class PostController {
     protected readonly boardRepository: IBoardRepository,
     protected readonly threadRepository: IThreadRepository,
     protected readonly postRepository: IPostRepository,
-    protected readonly tripcodeGenerator: ITripcodeGenerator
+    protected readonly tripcodeGenerator: ITripcodeGenerator,
+    protected readonly tokenizer: ITokenizer,
+    protected readonly parser: IParser
   ) {}
 
   public index = async (ctx: Koa.Context) => {
@@ -105,6 +109,8 @@ export class PostController {
       this.threadRepository,
       this.postRepository,
       this.tripcodeGenerator,
+      this.tokenizer,
+      this.parser,
       name,
       message,
       ip
@@ -148,6 +154,7 @@ export class PostController {
       name: post.name,
       tripcode: post.tripcode,
       message: post.message,
+      message_parsed: post.parsedMessage,
       created_at: post.createdAt.toISOString(),
     };
   }

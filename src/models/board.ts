@@ -1,5 +1,6 @@
 import { NotFoundError, ValidationError } from '../errors';
 import IBoardRepository from './board-repository';
+import { IParser, ITokenizer } from './markup';
 import Thread from './thread';
 import IThreadRepository from './thread-repository';
 import ITripcodeGenerator from './tripcode-generator';
@@ -22,6 +23,8 @@ export class Board {
     boardRepository: IBoardRepository,
     threadRepository: IThreadRepository,
     tripcodeGenerator: ITripcodeGenerator,
+    tokenizer: ITokenizer,
+    parser: IParser,
     subject: string,
     name: string,
     message: string,
@@ -44,12 +47,14 @@ export class Board {
     }
 
     const author = tripcodeGenerator.createTripcode(name);
+    const tokens = tokenizer.tokenize(message);
+    const parsedMessage = parser.parse(tokens);
 
     let thread: Thread | null = null;
 
     try {
       await threadRepository.begin();
-      thread = await threadRepository.add(this.id, subject, author.name, author.tripcode, message, ip);
+      thread = await threadRepository.add(this.id, subject, author.name, author.tripcode, message, parsedMessage, ip);
       await boardRepository.incrementPostCount(this.id);
       await threadRepository.commit();
     } catch (err) {
