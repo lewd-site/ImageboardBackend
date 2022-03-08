@@ -1,31 +1,27 @@
+import { existsSync } from 'fs';
+import { unlink } from 'fs/promises';
 import Koa from 'koa';
 import { NotFoundError } from '../../errors';
 import IBoardRepository from '../../models/board-repository';
-import { IParser, ITokenizer, Node } from '../../models/markup';
-import Post from '../../models/post';
+import { FileManager } from '../../models/file-manager';
+import IFileRepository from '../../models/file-repository';
+import { IParser, ITokenizer } from '../../models/markup';
 import IPostRepository from '../../models/post-repository';
 import IThreadRepository from '../../models/thread-repository';
 import ITripcodeGenerator from '../../models/tripcode-generator';
-
-interface PostDto {
-  readonly id: number;
-  readonly slug: string;
-  readonly parent_id: number;
-  readonly name: string | null;
-  readonly tripcode: string | null;
-  readonly message: string;
-  readonly message_parsed: Node[];
-  readonly created_at: string;
-}
+import { convertMulterFileToUploadedFile } from '../../models/types';
+import { convertPostModelToDto } from './types';
 
 export class PostController {
   public constructor(
     protected readonly boardRepository: IBoardRepository,
     protected readonly threadRepository: IThreadRepository,
     protected readonly postRepository: IPostRepository,
+    protected readonly fileRepository: IFileRepository,
     protected readonly tripcodeGenerator: ITripcodeGenerator,
     protected readonly tokenizer: ITokenizer,
-    protected readonly parser: IParser
+    protected readonly parser: IParser,
+    protected readonly fileManager: FileManager
   ) {}
 
   public index = async (ctx: Koa.Context) => {
@@ -45,7 +41,9 @@ export class PostController {
       }
 
       const posts = await this.postRepository.browseForThread(threadId);
-      return (ctx.body = { items: posts.map(this.convertModelToDto) });
+      await this.fileRepository.loadForPosts(posts);
+
+      return (ctx.body = { items: posts.map(convertPostModelToDto) });
     }
 
     const slug = String(ctx.params.slug || '').trim();
@@ -57,7 +55,9 @@ export class PostController {
     }
 
     const posts = await this.postRepository.browse();
-    ctx.body = { items: posts.map(this.convertModelToDto) };
+    await this.fileRepository.loadForPosts(posts);
+
+    ctx.body = { items: posts.map(convertPostModelToDto) };
   };
 
   public show = async (ctx: Koa.Context) => {
@@ -83,7 +83,9 @@ export class PostController {
       }
     }
 
-    ctx.body = { item: this.convertModelToDto(post) };
+    await this.fileRepository.loadForPost(post);
+
+    ctx.body = { item: convertPostModelToDto(post) };
   };
 
   public create = async (ctx: Koa.Context) => {
@@ -103,22 +105,47 @@ export class PostController {
 
     const name = String(ctx.request.body.name || '');
     const message = String(ctx.request.body.message || '');
-    const ip = ctx.request.ip;
-    const post = await thread.createPost(
-      this.boardRepository,
-      this.threadRepository,
-      this.postRepository,
-      this.tripcodeGenerator,
-      this.tokenizer,
-      this.parser,
-      name,
-      message,
-      ip
-    );
 
-    ctx.status = 201;
-    ctx.set('Location', `/api/v1/boards/${thread.board.slug}/threads/${thread.id}/posts/${post.id}`);
-    ctx.body = { item: this.convertModelToDto(post) };
+    const multerFiles =
+      typeof ctx.files !== 'undefined' && !Array.isArray(ctx.files)
+        ? typeof ctx.files['files'] !== 'undefined'
+          ? ctx.files['files']
+          : []
+        : [];
+
+    const uploadedFiles = multerFiles.map(convertMulterFileToUploadedFile);
+    try {
+      const files = await this.fileManager.validateFiles(uploadedFiles);
+      const ip = ctx.request.ip;
+      const post = await thread.createPost(
+        this.boardRepository,
+        this.threadRepository,
+        this.postRepository,
+        this.fileRepository,
+        this.tripcodeGenerator,
+        this.tokenizer,
+        this.parser,
+        name,
+        message,
+        files,
+        ip
+      );
+
+      await this.fileRepository.loadForPost(post);
+      await this.fileManager.moveFiles(files);
+
+      ctx.status = 201;
+      ctx.set('Location', `/api/v1/boards/${thread.board.slug}/threads/${thread.id}/posts/${post.id}`);
+      ctx.body = { item: convertPostModelToDto(post) };
+    } finally {
+      await Promise.all(
+        uploadedFiles.map((file) => {
+          if (existsSync(file.path)) {
+            return unlink(file.path);
+          }
+        })
+      );
+    }
   };
 
   public delete = async (ctx: Koa.Context) => {
@@ -142,22 +169,11 @@ export class PostController {
       }
     }
 
-    const deletedPost = await thread.deletePost(this.postRepository, id);
-    ctx.body = { item: this.convertModelToDto(deletedPost) };
-  };
+    await this.fileRepository.loadForPost(post);
+    await thread.deletePost(this.postRepository, id);
 
-  protected convertModelToDto(post: Post): PostDto {
-    return {
-      id: +post.id,
-      slug: post.board.slug,
-      parent_id: +post.parentId,
-      name: post.name,
-      tripcode: post.tripcode,
-      message: post.message,
-      message_parsed: post.parsedMessage,
-      created_at: post.createdAt.toISOString(),
-    };
-  }
+    ctx.body = { item: convertPostModelToDto(post) };
+  };
 }
 
 export default PostController;

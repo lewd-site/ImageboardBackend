@@ -1,16 +1,21 @@
 import { NotFoundError, ValidationError } from '../errors';
 import Board from './board';
 import IBoardRepository from './board-repository';
+import File from './file';
+import IFileRepository from './file-repository';
 import { IParser, ITokenizer, Node } from './markup';
 import Post from './post';
 import IPostRepository from './post-repository';
 import IThreadRepository from './thread-repository';
 import ITripcodeGenerator from './tripcode-generator';
+import { FileInfo } from './types';
 
 export class Thread {
   public static readonly MAX_NAME_LENGTH = 40;
   public static readonly MAX_MESSAGE_LENGTH = 8000;
   public static readonly BUMP_LIMIT = 500;
+
+  public readonly files: File[] = [];
 
   public constructor(
     public readonly id: number,
@@ -30,11 +35,13 @@ export class Thread {
     boardRepository: IBoardRepository,
     threadRepository: IThreadRepository,
     postRepository: IPostRepository,
+    fileRepository: IFileRepository,
     tripcodeGenerator: ITripcodeGenerator,
     tokenizer: ITokenizer,
     parser: IParser,
     name: string,
     message: string,
+    files: FileInfo[],
     ip: string
   ): Promise<Post> {
     if (!name.length) {
@@ -62,20 +69,40 @@ export class Thread {
     try {
       await postRepository.begin();
       post = await postRepository.add(this.board.id, this.id, author.name, author.tripcode, message, parsedMessage, ip);
+      if (post === null) {
+        throw new Error("Can't create post");
+      }
+
       await boardRepository.incrementPostCount(this.board.id);
       await threadRepository.incrementPostCount(this.id);
       if (this.postCount < Thread.BUMP_LIMIT) {
         await threadRepository.bumpThread(this.id);
       }
 
+      for (const fileInfo of files) {
+        const file = await fileRepository.readOrAdd(
+          fileInfo.hash,
+          fileInfo.originalName,
+          fileInfo.extension,
+          fileInfo.mimeType,
+          fileInfo.size,
+          fileInfo.width,
+          fileInfo.height,
+          fileInfo.length,
+          ip
+        );
+
+        if (file === null) {
+          throw new Error("Can't create file");
+        }
+
+        await fileRepository.addPostFileLink(post.id, file.id);
+      }
+
       await postRepository.commit();
     } catch (err) {
       await postRepository.rollback();
       throw err;
-    }
-
-    if (post === null) {
-      throw new NotFoundError('id');
     }
 
     return post;

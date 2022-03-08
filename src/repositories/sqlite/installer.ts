@@ -45,5 +45,29 @@ export function setupDatabase(db: sqlite3.Database) {
     db.run(`CREATE INDEX IF NOT EXISTS posts_board_id_idx ON posts (board_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS posts_parent_id_idx ON posts (parent_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS posts_bumped_at_idx ON posts (bumped_at)`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS files (
+      id INTEGER NOT NULL PRIMARY KEY,
+      hash TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      extension TEXT NOT NULL,
+      type TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      width INTEGER,
+      height INTEGER,
+      length INTEGER,
+      ip_id INTEGER NOT NULL REFERENCES ips (id) ON DELETE RESTRICT,
+      created_at INTEGER NOT NULL
+    )`);
+
+    db.run(`CREATE INDEX IF NOT EXISTS files_hash_idx ON files (hash)`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS posts_files (
+      id INTEGER NOT NULL PRIMARY KEY,
+      post_id INTEGER REFERENCES posts (id) ON DELETE CASCADE,
+      file_id INTEGER REFERENCES files (id) ON DELETE CASCADE
+    )`);
+
+    db.run(`CREATE INDEX IF NOT EXISTS posts_files_post_id_idx ON posts_files (post_id)`);
   });
 }

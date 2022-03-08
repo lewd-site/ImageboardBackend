@@ -13,6 +13,9 @@ export const config = {
   http: {
     port: +(env.HTTP_PORT || 3000),
   },
+  ffprobe: {
+    path: env.FFPROBE_PATH || 'ffprobe',
+  },
 };
 
 export default config;

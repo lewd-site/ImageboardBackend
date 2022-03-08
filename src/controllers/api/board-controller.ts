@@ -1,15 +1,8 @@
 import Koa from 'koa';
 import { NotFoundError } from '../../errors';
-import Board from '../../models/board';
 import BoardManager from '../../models/board-manager';
 import IBoardRepository from '../../models/board-repository';
-
-interface BoardDto {
-  readonly slug: string;
-  readonly title: string;
-  readonly created_at: string;
-  readonly post_count: number;
-}
+import { convertBoardModelToDto } from './types';
 
 export class BoardController {
   public constructor(
@@ -20,7 +13,7 @@ export class BoardController {
   public index = async (ctx: Koa.Context) => {
     const page = +(ctx.query.page || 0);
     const boards = await this.boardRepository.browse(page);
-    ctx.body = { items: boards.map(this.convertModelToDto) };
+    ctx.body = { items: boards.map(convertBoardModelToDto) };
   };
 
   public show = async (ctx: Koa.Context) => {
@@ -30,7 +23,7 @@ export class BoardController {
       throw new NotFoundError('slug');
     }
 
-    ctx.body = { item: this.convertModelToDto(board) };
+    ctx.body = { item: convertBoardModelToDto(board) };
   };
 
   public create = async (ctx: Koa.Context) => {
@@ -43,7 +36,7 @@ export class BoardController {
 
     ctx.status = 201;
     ctx.set('Location', `/api/v1/boards/${board.slug}`);
-    ctx.body = { item: this.convertModelToDto(board) };
+    ctx.body = { item: convertBoardModelToDto(board) };
   };
 
   public update = async (ctx: Koa.Context) => {
@@ -55,7 +48,7 @@ export class BoardController {
       throw new NotFoundError('slug');
     }
 
-    ctx.body = { item: this.convertModelToDto(board) };
+    ctx.body = { item: convertBoardModelToDto(board) };
   };
 
   public delete = async (ctx: Koa.Context) => {
@@ -65,17 +58,8 @@ export class BoardController {
       throw new NotFoundError('slug');
     }
 
-    ctx.body = { item: this.convertModelToDto(board) };
+    ctx.body = { item: convertBoardModelToDto(board) };
   };
-
-  protected convertModelToDto(board: Board): BoardDto {
-    return {
-      slug: board.slug,
-      title: board.title,
-      created_at: board.createdAt.toISOString(),
-      post_count: +board.postCount,
-    };
-  }
 }
 
 export default BoardController;

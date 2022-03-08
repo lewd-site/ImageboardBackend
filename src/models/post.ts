@@ -1,9 +1,12 @@
 import Board from './board';
+import File from './file';
 import { Node } from './markup';
 
 export class Post {
   public static readonly MAX_NAME_LENGTH = 40;
   public static readonly MAX_MESSAGE_LENGTH = 8000;
+
+  public readonly files: File[] = [];
 
   public constructor(
     public readonly id: number,

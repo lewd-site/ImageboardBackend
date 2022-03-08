@@ -103,7 +103,7 @@ export class PostRepository extends Repository implements IPostRepository {
     parsedMessage: Node[],
     ip: string
   ): Promise<Post | null> {
-    const sql = `INSERT INTO posts(board_id, parent_id, name_id, tripcode_id, message, message_parsed, ip_id, created_at, bumped_at)
+    const sql = `INSERT INTO posts (board_id, parent_id, name_id, tripcode_id, message, message_parsed, ip_id, created_at, bumped_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%s','now'), NULL)`;
 
     const result = await this.runAsync(sql, [

@@ -1,31 +1,25 @@
+import { existsSync } from 'fs';
+import { unlink } from 'fs/promises';
 import Koa from 'koa';
 import { NotFoundError } from '../../errors';
 import IBoardRepository from '../../models/board-repository';
-import { IParser, ITokenizer, Node } from '../../models/markup';
-import Thread from '../../models/thread';
+import { FileManager } from '../../models/file-manager';
+import IFileRepository from '../../models/file-repository';
+import { IParser, ITokenizer } from '../../models/markup';
 import IThreadRepository from '../../models/thread-repository';
 import ITripcodeGenerator from '../../models/tripcode-generator';
-
-interface ThreadDto {
-  readonly id: number;
-  readonly slug: string;
-  readonly subject: string | null;
-  readonly name: string | null;
-  readonly tripcode: string | null;
-  readonly message: string;
-  readonly message_parsed: Node[];
-  readonly created_at: string;
-  readonly bumped_at: string;
-  readonly post_count: number;
-}
+import { convertMulterFileToUploadedFile } from '../../models/types';
+import { convertThreadModelToDto } from './types';
 
 export class ThreadController {
   public constructor(
     protected readonly boardRepository: IBoardRepository,
     protected readonly threadRepository: IThreadRepository,
+    protected readonly fileRepository: IFileRepository,
     protected readonly tripcodeGenerator: ITripcodeGenerator,
     protected readonly tokenizer: ITokenizer,
-    protected readonly parser: IParser
+    protected readonly parser: IParser,
+    protected readonly fileManager: FileManager
   ) {}
 
   public index = async (ctx: Koa.Context) => {
@@ -38,12 +32,16 @@ export class ThreadController {
 
       const page = +(ctx.query.page || 0);
       const threads = await this.threadRepository.browseForBoard(board.id, page);
-      return (ctx.body = { items: threads.map(this.convertModelToDto) });
+      await this.fileRepository.loadForPosts(threads);
+
+      return (ctx.body = { items: threads.map(convertThreadModelToDto) });
     }
 
     const page = +(ctx.query.page || 0);
     const threads = await this.threadRepository.browse(page);
-    ctx.body = { items: threads.map(this.convertModelToDto) };
+    await this.fileRepository.loadForPosts(threads);
+
+    ctx.body = { items: threads.map(convertThreadModelToDto) };
   };
 
   public show = async (ctx: Koa.Context) => {
@@ -61,7 +59,9 @@ export class ThreadController {
       }
     }
 
-    ctx.body = { item: this.convertModelToDto(thread) };
+    await this.fileRepository.loadForPost(thread);
+
+    ctx.body = { item: convertThreadModelToDto(thread) };
   };
 
   public create = async (ctx: Koa.Context) => {
@@ -74,22 +74,47 @@ export class ThreadController {
     const subject = String(ctx.request.body.subject || '');
     const name = String(ctx.request.body.name || '');
     const message = String(ctx.request.body.message || '');
-    const ip = ctx.request.ip;
-    const thread = await board.createThread(
-      this.boardRepository,
-      this.threadRepository,
-      this.tripcodeGenerator,
-      this.tokenizer,
-      this.parser,
-      subject,
-      name,
-      message,
-      ip
-    );
 
-    ctx.status = 201;
-    ctx.set('Location', `/api/v1/boards/${board.slug}/threads/${thread.id}`);
-    ctx.body = { item: this.convertModelToDto(thread) };
+    const multerFiles =
+      typeof ctx.files !== 'undefined' && !Array.isArray(ctx.files)
+        ? typeof ctx.files['files'] !== 'undefined'
+          ? ctx.files['files']
+          : []
+        : [];
+
+    const uploadedFiles = multerFiles.map(convertMulterFileToUploadedFile);
+    try {
+      const files = await this.fileManager.validateFiles(uploadedFiles);
+      const ip = ctx.request.ip;
+      const thread = await board.createThread(
+        this.boardRepository,
+        this.threadRepository,
+        this.fileRepository,
+        this.tripcodeGenerator,
+        this.tokenizer,
+        this.parser,
+        subject,
+        name,
+        message,
+        files,
+        ip
+      );
+
+      await this.fileRepository.loadForPost(thread);
+      await this.fileManager.moveFiles(files);
+
+      ctx.status = 201;
+      ctx.set('Location', `/api/v1/boards/${board.slug}/threads/${thread.id}`);
+      ctx.body = { item: convertThreadModelToDto(thread) };
+    } finally {
+      await Promise.all(
+        uploadedFiles.map((file) => {
+          if (existsSync(file.path)) {
+            return unlink(file.path);
+          }
+        })
+      );
+    }
   };
 
   public delete = async (ctx: Koa.Context) => {
@@ -105,24 +130,11 @@ export class ThreadController {
       throw new NotFoundError('slug');
     }
 
-    const deletedThread = await board.deleteThread(this.threadRepository, threadId);
-    ctx.body = { item: this.convertModelToDto(deletedThread) };
-  };
+    await this.fileRepository.loadForPost(thread);
+    await board.deleteThread(this.threadRepository, threadId);
 
-  protected convertModelToDto(thread: Thread): ThreadDto {
-    return {
-      id: +thread.id,
-      slug: thread.board.slug,
-      subject: thread.subject,
-      name: thread.name,
-      tripcode: thread.tripcode,
-      message: thread.message,
-      message_parsed: thread.parsedMessage,
-      post_count: +thread.postCount,
-      created_at: thread.createdAt.toISOString(),
-      bumped_at: thread.bumpedAt.toISOString(),
-    };
-  }
+    ctx.body = { item: convertThreadModelToDto(thread) };
+  };
 }
 
 export default ThreadController;
