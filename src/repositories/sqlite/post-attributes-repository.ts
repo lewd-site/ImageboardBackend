@@ -12,12 +12,16 @@ export class PostAttributesRepository extends Repository {
 
   protected async readName(name: string): Promise<number | null> {
     const { row } = await this.getAsync(`SELECT id FROM names WHERE name = ?`, [name]);
+    if (row === null) {
+      return null;
+    }
+
     return row.id;
   }
 
   protected async addName(name: string): Promise<number> {
-    const { row } = await this.getAsync(`INSERT INTO names (name) VALUES (?) RETURNING id`, [name]);
-    return row.id;
+    const result = await this.runAsync(`INSERT INTO names (name) VALUES (?)`, [name]);
+    return result.lastID;
   }
 
   public async readOrAddTripcode(tripcode: string): Promise<number> {
@@ -31,12 +35,16 @@ export class PostAttributesRepository extends Repository {
 
   protected async readTripcode(tripcode: string): Promise<number | null> {
     const { row } = await this.getAsync(`SELECT id FROM tripcodes WHERE tripcode = ?`, [tripcode]);
+    if (row === null) {
+      return null;
+    }
+
     return row.id;
   }
 
   protected async addTripcode(tripcode: string): Promise<number> {
-    const { row } = await this.getAsync(`INSERT INTO tripcodes (tripcode) VALUES (?) RETURNING id`, [tripcode]);
-    return row.id;
+    const result = await this.runAsync(`INSERT INTO tripcodes (tripcode) VALUES (?)`, [tripcode]);
+    return result.lastID;
   }
 
   public async readOrAddIp(ip: string): Promise<number> {
@@ -50,12 +58,16 @@ export class PostAttributesRepository extends Repository {
 
   protected async readIp(ip: string): Promise<number | null> {
     const { row } = await this.getAsync(`SELECT id FROM ips WHERE ip = ?`, [ip]);
+    if (row === null) {
+      return null;
+    }
+
     return row.id;
   }
 
   protected async addIp(ip: string): Promise<number> {
-    const { row } = await this.getAsync(`INSERT INTO ips (ip) VALUES (?) RETURNING id`, [ip]);
-    return row.id;
+    const result = await this.runAsync(`INSERT INTO ips (ip) VALUES (?)`, [ip]);
+    return result.lastID;
   }
 }
 

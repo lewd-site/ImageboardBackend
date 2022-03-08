@@ -25,6 +25,18 @@ export class ThreadController {
   ) {}
 
   public index = async (ctx: Koa.Context) => {
+    const slug = String(ctx.params.slug || '').trim();
+    if (slug.length) {
+      const board = await this.boardRepository.readBySlug(slug);
+      if (board === null) {
+        throw new NotFoundError('slug');
+      }
+
+      const page = +(ctx.query.page || 0);
+      const threads = await this.threadRepository.browseForBoard(board.id, page);
+      return (ctx.body = { items: threads.map(this.convertModelToDto) });
+    }
+
     const page = +(ctx.query.page || 0);
     const threads = await this.threadRepository.browse(page);
     ctx.body = { items: threads.map(this.convertModelToDto) };
@@ -37,11 +49,19 @@ export class ThreadController {
       throw new NotFoundError('threadId');
     }
 
+    const slug = String(ctx.params.slug || '').trim();
+    if (slug.length) {
+      const board = await this.boardRepository.readBySlug(slug);
+      if (board === null || board.id !== thread.board.id) {
+        throw new NotFoundError('slug');
+      }
+    }
+
     ctx.body = { item: this.convertModelToDto(thread) };
   };
 
   public create = async (ctx: Koa.Context) => {
-    const slug = String(ctx.request.body.slug || '').trim();
+    const slug = String(ctx.params.slug || ctx.request.body.slug || '').trim();
     const board = await this.boardRepository.readBySlug(slug);
     if (board === null) {
       throw new NotFoundError('slug');
@@ -62,24 +82,25 @@ export class ThreadController {
     );
 
     ctx.status = 201;
-    ctx.set('Location', `/api/v1/threads/${thread.id}`);
+    ctx.set('Location', `/api/v1/boards/${board.slug}/threads/${thread.id}`);
     ctx.body = { item: this.convertModelToDto(thread) };
   };
 
   public delete = async (ctx: Koa.Context) => {
     const threadId = +(ctx.params.threadId || 0);
-    let thread = await this.threadRepository.read(threadId);
+    const thread = await this.threadRepository.read(threadId);
     if (thread === null) {
       throw new NotFoundError('threadId');
     }
 
-    const board = await this.boardRepository.read(thread.board.id);
-    if (board === null) {
+    const slug = String(ctx.params.slug || thread.board.slug || '').trim();
+    const board = await this.boardRepository.readBySlug(slug);
+    if (board === null || board.id !== thread.board.id) {
       throw new NotFoundError('slug');
     }
 
-    thread = await board.deleteThread(this.threadRepository, threadId);
-    ctx.body = { item: this.convertModelToDto(thread) };
+    const deletedThread = await board.deleteThread(this.threadRepository, threadId);
+    ctx.body = { item: this.convertModelToDto(deletedThread) };
   };
 
   protected convertModelToDto(thread: Thread): ThreadDto {
@@ -90,9 +111,9 @@ export class ThreadController {
       name: thread.name,
       tripcode: thread.tripcode,
       message: thread.message,
+      post_count: +thread.postCount,
       created_at: thread.createdAt.toISOString(),
       bumped_at: thread.bumpedAt.toISOString(),
-      post_count: +thread.postCount,
     };
   }
 }
