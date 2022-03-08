@@ -1,3 +1,4 @@
+import path from 'path';
 import sqlite3 from 'sqlite3';
 import request from 'supertest';
 import { createApp } from '../../../src/app';
@@ -23,7 +24,9 @@ test('create thread', async () => {
   // Act
   const response = await request(app.callback())
     .post('/api/v1/boards/a/threads')
-    .send({ name: 'Tester', message: 'Hello world!' });
+    .field('name', 'Tester')
+    .field('message', 'Hello world!')
+    .attach('files', path.resolve(__dirname, '..', '..', 'data', 'test.jpg'));
 
   // Assert
   expect(response.status).toEqual(201);
@@ -38,7 +41,20 @@ test('create thread', async () => {
       tripcode: null,
       message: 'Hello world!',
       message_parsed: [{ type: 'text', text: 'Hello world!' }],
-      files: [],
+      files: [
+        {
+          hash: '0543ea6b3b10944ac126bfdc4e387c4e',
+          name: 'test.jpg',
+          extension: 'jpg',
+          path: 'original/0543ea6b3b10944ac126bfdc4e387c4e.jpg',
+          type: 'image/jpeg',
+          size: 162928,
+          width: 600,
+          height: 900,
+          length: null,
+          created_at: expect.any(String),
+        },
+      ],
       post_count: 1,
       created_at: expect.any(String),
       bumped_at: expect.any(String),

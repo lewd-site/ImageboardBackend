@@ -1,3 +1,4 @@
+import path from 'path';
 import sqlite3 from 'sqlite3';
 import request from 'supertest';
 import { createApp } from '../../../src/app';
@@ -40,6 +41,52 @@ test('create post', async () => {
       message: 'Test reply 1',
       message_parsed: [{ type: 'text', text: 'Test reply 1' }],
       files: [],
+      created_at: expect.any(String),
+    },
+  });
+});
+
+test('create post with file', async () => {
+  // Arrange
+  const app = createApp(db!);
+  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+
+  // Act
+  const response = await request(app.callback())
+    .post('/api/v1/posts')
+    .field('parentId', 1)
+    .field('name', 'Tester')
+    .field('message', 'Test reply 1')
+    .attach('files', path.resolve(__dirname, '..', '..', 'data', 'test.jpg'));
+
+  // Assert
+  expect(response.status).toEqual(201);
+  expect(response.type).toEqual('application/json');
+  expect(response.headers.location).toEqual('/api/v1/boards/a/threads/1/posts/2');
+  expect(response.body).toEqual({
+    item: {
+      id: 2,
+      slug: 'a',
+      parent_id: 1,
+      name: 'Tester',
+      tripcode: null,
+      message: 'Test reply 1',
+      message_parsed: [{ type: 'text', text: 'Test reply 1' }],
+      files: [
+        {
+          hash: '0543ea6b3b10944ac126bfdc4e387c4e',
+          name: 'test.jpg',
+          extension: 'jpg',
+          path: 'original/0543ea6b3b10944ac126bfdc4e387c4e.jpg',
+          type: 'image/jpeg',
+          size: 162928,
+          width: 600,
+          height: 900,
+          length: null,
+          created_at: expect.any(String),
+        },
+      ],
       created_at: expect.any(String),
     },
   });
