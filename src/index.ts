@@ -15,6 +15,7 @@ import { errorHandler } from './middleware/error-handler';
 import BoardManager from './models/board-manager';
 import BoardRepository from './repositories/sqlite/board-repository';
 import { setupDatabase } from './repositories/sqlite/installer';
+import PostAttributesRepository from './repositories/sqlite/post-attributes-repository';
 import PostRepository from './repositories/sqlite/post-repository';
 import ThreadRepository from './repositories/sqlite/thread-repository';
 import { WakabaTripcodeGenerator } from './wakaba-tripcode-generator';
@@ -23,8 +24,9 @@ const db = new sqlite3.Database(config.db.path, sqlite3.OPEN_CREATE | sqlite3.OP
 setupDatabase(db);
 
 const boardRepository = new BoardRepository(db);
-const threadRepository = new ThreadRepository(db);
-const postRepository = new PostRepository(db);
+const postAttributesRepository = new PostAttributesRepository(db);
+const threadRepository = new ThreadRepository(db, postAttributesRepository);
+const postRepository = new PostRepository(db, postAttributesRepository);
 
 const boardManager = new BoardManager();
 const tripcodeGenerator = new WakabaTripcodeGenerator();

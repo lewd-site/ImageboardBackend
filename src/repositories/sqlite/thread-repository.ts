@@ -1,6 +1,8 @@
+import sqlite3 from 'sqlite3';
 import Board from '../../models/board';
 import Thread from '../../models/thread';
 import IThreadRepository from '../../models/thread-repository';
+import PostAttributesRepository from './post-attributes-repository';
 import Repository from './repository';
 
 interface ThreadDto {
@@ -26,6 +28,10 @@ interface ThreadDto {
 export class ThreadRepository extends Repository implements IThreadRepository {
   protected static readonly PER_PAGE = 10;
   protected static readonly MS_IN_SECOND = 1000;
+
+  public constructor(db: sqlite3.Database, protected readonly postAttributesRepository: PostAttributesRepository) {
+    super(db);
+  }
 
   public async browse(page: number = 0): Promise<Thread[]> {
     const limit = ThreadRepository.PER_PAGE;
@@ -137,42 +143,13 @@ export class ThreadRepository extends Repository implements IThreadRepository {
     const result = await this.runAsync(sql, [
       boardId,
       subject.length ? subject : null,
-      name.length ? await this.getNameId(name) : null,
-      tripcode.length ? await this.getTripcodeId(tripcode) : null,
+      name.length ? await this.postAttributesRepository.readOrAddName(name) : null,
+      tripcode.length ? await this.postAttributesRepository.readOrAddTripcode(tripcode) : null,
       message,
-      await this.getIpId(ip),
+      await this.postAttributesRepository.readOrAddIp(ip),
     ]);
+
     return this.read(result.lastID);
-  }
-
-  protected async getNameId(name: string): Promise<number> {
-    const { row } = await this.getAsync(`SELECT id FROM names WHERE name = ?`, [name]);
-    if (row === null) {
-      const statement = await this.runAsync(`INSERT INTO names (name) VALUES (?)`, [name]);
-      return statement.lastID;
-    }
-
-    return row.id;
-  }
-
-  protected async getTripcodeId(tripcode: string): Promise<number> {
-    const { row } = await this.getAsync(`SELECT id FROM tripcodes WHERE tripcode = ?`, [tripcode]);
-    if (row === null) {
-      const statement = await this.runAsync(`INSERT INTO tripcodes (tripcode) VALUES (?)`, [tripcode]);
-      return statement.lastID;
-    }
-
-    return row.id;
-  }
-
-  protected async getIpId(ip: string): Promise<number> {
-    const { row } = await this.getAsync(`SELECT id FROM ips WHERE ip = ?`, [ip]);
-    if (row === null) {
-      const statement = await this.runAsync(`INSERT INTO ips (ip) VALUES (?)`, [ip]);
-      return statement.lastID;
-    }
-
-    return row.id;
   }
 
   public async delete(id: number): Promise<Thread | null> {

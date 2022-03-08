@@ -1,6 +1,8 @@
+import sqlite3 from 'sqlite3';
 import Board from '../../models/board';
 import Post from '../../models/post';
 import IPostRepository from '../../models/post-repository';
+import PostAttributesRepository from './post-attributes-repository';
 import Repository from './repository';
 
 interface PostDto {
@@ -24,6 +26,10 @@ interface PostDto {
 export class PostRepository extends Repository implements IPostRepository {
   protected static readonly PER_PAGE = 100;
   protected static readonly MS_IN_SECOND = 1000;
+
+  public constructor(db: sqlite3.Database, protected readonly postAttributesRepository: PostAttributesRepository) {
+    super(db);
+  }
 
   public async browse(): Promise<Post[]> {
     const sql = `SELECT
@@ -100,42 +106,13 @@ export class PostRepository extends Repository implements IPostRepository {
     const result = await this.runAsync(sql, [
       boardId,
       parentId,
-      name.length ? await this.getNameId(name) : null,
-      tripcode.length ? await this.getTripcodeId(tripcode) : null,
+      name.length ? await this.postAttributesRepository.readOrAddName(name) : null,
+      tripcode.length ? await this.postAttributesRepository.readOrAddTripcode(tripcode) : null,
       message,
-      await this.getIpId(ip),
+      await this.postAttributesRepository.readOrAddIp(ip),
     ]);
+
     return this.read(result.lastID);
-  }
-
-  protected async getNameId(name: string): Promise<number> {
-    const { row } = await this.getAsync(`SELECT id FROM names WHERE name = ?`, [name]);
-    if (row === null) {
-      const statement = await this.runAsync(`INSERT INTO names (name) VALUES (?)`, [name]);
-      return statement.lastID;
-    }
-
-    return row.id;
-  }
-
-  protected async getTripcodeId(tripcode: string): Promise<number> {
-    const { row } = await this.getAsync(`SELECT id FROM tripcodes WHERE tripcode = ?`, [tripcode]);
-    if (row === null) {
-      const statement = await this.runAsync(`INSERT INTO tripcodes (tripcode) VALUES (?)`, [tripcode]);
-      return statement.lastID;
-    }
-
-    return row.id;
-  }
-
-  protected async getIpId(ip: string): Promise<number> {
-    const { row } = await this.getAsync(`SELECT id FROM ips WHERE ip = ?`, [ip]);
-    if (row === null) {
-      const statement = await this.runAsync(`INSERT INTO ips (ip) VALUES (?)`, [ip]);
-      return statement.lastID;
-    }
-
-    return row.id;
   }
 
   public async delete(id: number): Promise<Post | null> {
