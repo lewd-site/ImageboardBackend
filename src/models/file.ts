@@ -15,6 +15,7 @@ export class File {
     'audio/x-flac',
     'audio/vnd.wave',
   ];
+  public static readonly ALLOWED_THUMBNAIL_EXTENSIONS = ['webp', 'jpg', 'png'];
 
   public constructor(
     public readonly id: number,

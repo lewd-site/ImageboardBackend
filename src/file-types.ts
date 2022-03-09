@@ -40,10 +40,26 @@ const fileTypes: FileType[] = [
     ext: 'jpg',
     mime: 'image/jpeg',
   },
-  { signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe2]) }], ext: 'jpg', mime: 'image/jpeg' },
-  { signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe3]) }], ext: 'jpg', mime: 'image/jpeg' },
-  { signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xee]) }], ext: 'jpg', mime: 'image/jpeg' },
-  { signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xdb]) }], ext: 'jpg', mime: 'image/jpeg' },
+  {
+    signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe2]) }],
+    ext: 'jpg',
+    mime: 'image/jpeg',
+  },
+  {
+    signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe3]) }],
+    ext: 'jpg',
+    mime: 'image/jpeg',
+  },
+  {
+    signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xee]) }],
+    ext: 'jpg',
+    mime: 'image/jpeg',
+  },
+  {
+    signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xdb]) }],
+    ext: 'jpg',
+    mime: 'image/jpeg',
+  },
   {
     signatures: [{ position: 0, buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) }],
     ext: 'png',
@@ -59,18 +75,46 @@ const fileTypes: FileType[] = [
     ext: 'gif',
     mime: 'image/gif',
   },
-  { signatures: [{ position: 0, buffer: Buffer.from([0x42, 0x4d]) }], ext: 'bmp', mime: 'image/bmp' },
-  { signatures: [{ position: 0, buffer: Buffer.from([0x1a, 0x45, 0xdf, 0xa3]) }], ext: 'webm', mime: 'video/webm' },
+  {
+    signatures: [{ position: 0, buffer: Buffer.from([0x42, 0x4d]) }],
+    ext: 'bmp',
+    mime: 'image/bmp',
+  },
+  {
+    signatures: [{ position: 0, buffer: Buffer.from([0x1a, 0x45, 0xdf, 0xa3]) }],
+    ext: 'webm',
+    mime: 'video/webm',
+  },
   {
     signatures: [{ position: 4, buffer: Buffer.from([0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d]) }],
     ext: 'mp4',
     mime: 'video/mp4',
   },
-  { signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xfb]) }], ext: 'mp3', mime: 'audio/mpeg' },
-  { signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xf3]) }], ext: 'mp3', mime: 'audio/mpeg' },
-  { signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xf2]) }], ext: 'mp3', mime: 'audio/mpeg' },
-  { signatures: [{ position: 0, buffer: Buffer.from([0x49, 0x44, 0x33]) }], ext: 'mp3', mime: 'audio/mpeg' },
-  { signatures: [{ position: 0, buffer: Buffer.from([0x66, 0x4c, 0x61, 0x43]) }], ext: 'flac', mime: 'audio/x-flac' },
+  {
+    signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xfb]) }],
+    ext: 'mp3',
+    mime: 'audio/mpeg',
+  },
+  {
+    signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xf3]) }],
+    ext: 'mp3',
+    mime: 'audio/mpeg',
+  },
+  {
+    signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xf2]) }],
+    ext: 'mp3',
+    mime: 'audio/mpeg',
+  },
+  {
+    signatures: [{ position: 0, buffer: Buffer.from([0x49, 0x44, 0x33]) }],
+    ext: 'mp3',
+    mime: 'audio/mpeg',
+  },
+  {
+    signatures: [{ position: 0, buffer: Buffer.from([0x66, 0x4c, 0x61, 0x43]) }],
+    ext: 'flac',
+    mime: 'audio/x-flac',
+  },
   {
     signatures: [
       { position: 0, buffer: Buffer.from([0x52, 0x49, 0x46, 0x46]) },
@@ -97,6 +141,16 @@ export async function detectFileType(path: string): Promise<Result | null> {
 
     if (matched) {
       return { extension: fileType.ext, mimeType: fileType.mime };
+    }
+  }
+
+  return null;
+}
+
+export function getMimeTypeByExtension(extension: string): string | null {
+  for (const fileType of fileTypes) {
+    if (fileType.ext === extension) {
+      return fileType.mime;
     }
   }
 

@@ -18,10 +18,8 @@ export class Board {
     'original',
     'settings',
     'sse',
-    'thumb',
-    'thumbnail',
+    'thumbnails',
     'ws',
-    'uploads',
   ];
 
   public constructor(

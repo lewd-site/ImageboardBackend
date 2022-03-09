@@ -22,6 +22,8 @@ import PostAttributesRepository from './repositories/sqlite/post-attributes-repo
 import PostRepository from './repositories/sqlite/post-repository';
 import ThreadRepository from './repositories/sqlite/thread-repository';
 import { WakabaTripcodeGenerator } from './wakaba-tripcode-generator';
+import { Thumbnailer } from './thumbnailer';
+import FileController from './controllers/api/file-controller';
 
 const MS_IN_WEEK = 1000 * 60 * 60 * 24 * 7;
 
@@ -32,8 +34,9 @@ export function createApp(db: sqlite3.Database) {
   const postRepository = new PostRepository(db, postAttributesRepository);
   const fileRepository = new FileRepository(db, postAttributesRepository);
 
+  const thumbnailer = new Thumbnailer();
   const boardManager = new BoardManager();
-  const fileManager = new FileManager();
+  const fileManager = new FileManager(thumbnailer);
   const tripcodeGenerator = new WakabaTripcodeGenerator();
   const tokenizer = new Tokenizer();
   const parser = new Parser();
@@ -60,6 +63,8 @@ export function createApp(db: sqlite3.Database) {
     parser,
     fileManager
   );
+
+  const fileController = new FileController(fileRepository, fileManager);
 
   const router = new Router();
   const upload = multer({ dest: 'tmp/' });
@@ -109,6 +114,8 @@ export function createApp(db: sqlite3.Database) {
   router.post('/api/v1/posts', upload.fields([{ name: 'files', maxCount: 5 }]), postController.create);
   router.get('/api/v1/posts/:id', upload.fields([]), postController.show);
   router.delete('/api/v1/posts/:id', auth(), postController.delete);
+
+  router.get('/api/v1/thumbnails/:hash', upload.fields([]), fileController.createThumbnail);
 
   const app = new Koa();
   app.use(helmet.contentSecurityPolicy());

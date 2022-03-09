@@ -2,15 +2,26 @@ import ffprobe from 'ffprobe';
 import { existsSync } from 'fs';
 import { mkdir, rename } from 'fs/promises';
 import md5 from 'md5-file';
+import path from 'path';
 import config from '../config';
 import { ValidationError } from '../errors';
 import { detectFileType } from '../file-types';
+import { Thumbnailer } from '../thumbnailer';
 import File from './file';
 import { FileDimensions, FileInfo, UploadedFile } from './types';
 
 const DEFAULT_MIME_TYPE = 'application/octet-stream';
+const UPLOAD_DIR = 'public/original';
+const THUMBNAIL_DIR = 'public/thumbnails';
+const THUMBNAIL_SIZE = 250;
 
 export class FileManager {
+  public constructor(protected readonly thumbnailer: Thumbnailer) {}
+
+  public validateFiles = (files: UploadedFile[]): Promise<FileInfo[]> => {
+    return Promise.all(files.map(this.validateFile));
+  };
+
   public validateFile = async (file: UploadedFile): Promise<FileInfo> => {
     if (file.size > File.MAX_SIZE) {
       throw new ValidationError('files', 'max-size');
@@ -51,24 +62,6 @@ export class FileManager {
     };
   };
 
-  public validateFiles = (files: UploadedFile[]): Promise<FileInfo[]> => {
-    return Promise.all(files.map(this.validateFile));
-  };
-
-  public moveFile = async (file: FileInfo): Promise<void> => {
-    const uploadDir = 'public/original';
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
-    const uploadPath = `${uploadDir}/${file.hash}.${file.extension}`;
-    await rename(file.path, uploadPath);
-  };
-
-  public moveFiles = async (files: FileInfo[]): Promise<void> => {
-    await Promise.all(files.map(this.moveFile));
-  };
-
   protected async getFileDimensions(path: string): Promise<FileDimensions> {
     let width: number | null = null;
     let height: number | null = null;
@@ -95,4 +88,34 @@ export class FileManager {
       length,
     };
   }
+
+  public moveFiles = async (files: FileInfo[]): Promise<void> => {
+    await Promise.all(files.map(this.moveFile));
+  };
+
+  public moveFile = async (file: FileInfo): Promise<void> => {
+    if (!existsSync(UPLOAD_DIR)) {
+      await mkdir(UPLOAD_DIR, { recursive: true });
+    }
+
+    const uploadPath = path.resolve(UPLOAD_DIR, `${file.hash}.${file.extension}`);
+    await rename(file.path, uploadPath);
+  };
+
+  public createThumbnail = async (file: File, extension: string): Promise<string> => {
+    const source = path.resolve(UPLOAD_DIR, `${file.hash}.${file.extension}`);
+    const destination = path.resolve(THUMBNAIL_DIR, `${file.hash}.${extension}`);
+
+    if (!existsSync(THUMBNAIL_DIR)) {
+      await mkdir(THUMBNAIL_DIR, { recursive: true });
+    }
+
+    if (existsSync(destination)) {
+      return destination;
+    }
+
+    await this.thumbnailer.createThumbnail(source, destination, THUMBNAIL_SIZE);
+
+    return destination;
+  };
 }

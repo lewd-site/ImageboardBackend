@@ -16,6 +16,9 @@ export const config = {
   ffprobe: {
     path: env.FFPROBE_PATH || 'ffprobe',
   },
+  ffmpeg: {
+    path: env.FFMPEG_PATH || 'ffmpeg',
+  },
 };
 
 export default config;
