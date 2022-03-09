@@ -103,7 +103,7 @@ export class FileManager {
   };
 
   public createThumbnail = async (file: File, extension: string): Promise<string> => {
-    const source = path.resolve(UPLOAD_DIR, `${file.hash}.${file.extension}`);
+    let source = path.resolve(UPLOAD_DIR, `${file.hash}.${file.extension}`);
     const destination = path.resolve(THUMBNAIL_DIR, `${file.hash}.${extension}`);
 
     if (!existsSync(THUMBNAIL_DIR)) {
@@ -112,6 +112,14 @@ export class FileManager {
 
     if (existsSync(destination)) {
       return destination;
+    }
+
+    if (file.width === null && file.height === null) {
+      if (file.type.startsWith('audio/')) {
+        source = path.resolve(__dirname, '..', 'static', 'icons8-musical-notes-96.png');
+      } else {
+        source = path.resolve(__dirname, '..', 'static', 'icons8-cancel-96.png');
+      }
     }
 
     await this.thumbnailer.createThumbnail(source, destination, THUMBNAIL_SIZE);

@@ -15,7 +15,7 @@ export class Thumbnailer {
       '-y',
       `-i "${source.replace('"', '\\"')}"`,
       '-ss 00:00:00',
-      `-vf 'scale=${size}:${size}:force_original_aspect_ratio=decrease'`,
+      `-vf "scale='min(${size},iw)':'min(${size},ih):force_original_aspect_ratio=decrease'"`,
       '-vframes 1',
       destination.endsWith('.webp') ? '-quality 100' : '',
       destination.endsWith('.jpg') ? '-qmin 1 -qscale:v 1' : '',
