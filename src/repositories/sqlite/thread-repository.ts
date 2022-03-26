@@ -3,8 +3,8 @@ import Board from '../../models/board';
 import { Node } from '../../models/markup';
 import Thread from '../../models/thread';
 import IThreadRepository from '../../models/thread-repository';
-import PostAttributesRepository from './post-attributes-repository';
-import Repository from './repository';
+import SqlitePostAttributesRepository from './post-attributes-repository';
+import SqliteRepository from './repository';
 
 interface ThreadDto {
   readonly id: number;
@@ -27,17 +27,17 @@ interface ThreadDto {
   readonly bumped_at: number;
 }
 
-export class ThreadRepository extends Repository implements IThreadRepository {
+export class SqliteThreadRepository extends SqliteRepository implements IThreadRepository {
   protected static readonly PER_PAGE = 10;
   protected static readonly MS_IN_SECOND = 1000;
 
-  public constructor(db: sqlite3.Database, protected readonly postAttributesRepository: PostAttributesRepository) {
+  public constructor(db: sqlite3.Database, protected readonly postAttributesRepository: SqlitePostAttributesRepository) {
     super(db);
   }
 
   public async browse(page: number = 0): Promise<Thread[]> {
-    const limit = ThreadRepository.PER_PAGE;
-    const offset = Math.max(0, Math.floor(page)) * ThreadRepository.PER_PAGE;
+    const limit = SqliteThreadRepository.PER_PAGE;
+    const offset = Math.max(0, Math.floor(page)) * SqliteThreadRepository.PER_PAGE;
     const sql = `SELECT
         p.*,
         b.id as board_id, b.slug as board_slug, b.title as board_title, b.created_at as board_created_at, b.post_count as board_post_count,
@@ -58,8 +58,8 @@ export class ThreadRepository extends Repository implements IThreadRepository {
   }
 
   public async browseForBoard(boardId: number, page: number = 0): Promise<Thread[]> {
-    const limit = ThreadRepository.PER_PAGE;
-    const offset = Math.max(0, Math.floor(page)) * ThreadRepository.PER_PAGE;
+    const limit = SqliteThreadRepository.PER_PAGE;
+    const offset = Math.max(0, Math.floor(page)) * SqliteThreadRepository.PER_PAGE;
     const sql = `SELECT
         p.*,
         b.id as board_id, b.slug as board_slug, b.title as board_title, b.created_at as board_created_at, b.post_count as board_post_count,
@@ -176,7 +176,7 @@ export class ThreadRepository extends Repository implements IThreadRepository {
         +dto.board_id,
         dto.board_slug,
         dto.board_title,
-        new Date(+dto.board_created_at * ThreadRepository.MS_IN_SECOND),
+        new Date(+dto.board_created_at * SqliteThreadRepository.MS_IN_SECOND),
         +dto.board_post_count
       ),
       dto.subject,
@@ -186,10 +186,10 @@ export class ThreadRepository extends Repository implements IThreadRepository {
       JSON.parse(dto.message_parsed),
       dto.ip,
       +dto.post_count,
-      new Date(dto.created_at * ThreadRepository.MS_IN_SECOND),
-      new Date(dto.bumped_at * ThreadRepository.MS_IN_SECOND)
+      new Date(dto.created_at * SqliteThreadRepository.MS_IN_SECOND),
+      new Date(dto.bumped_at * SqliteThreadRepository.MS_IN_SECOND)
     );
   }
 }
 
-export default ThreadRepository;
+export default SqliteThreadRepository;

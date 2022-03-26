@@ -1,6 +1,6 @@
 import sqlite3 from 'sqlite3';
 
-export abstract class Repository {
+export abstract class SqliteRepository {
   public constructor(protected readonly db: sqlite3.Database) {}
 
   public async begin(): Promise<void> {
@@ -56,4 +56,4 @@ export abstract class Repository {
   }
 }
 
-export default Repository;
+export default SqliteRepository;

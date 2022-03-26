@@ -1,6 +1,6 @@
-import Repository from './repository';
+import SqliteRepository from './repository';
 
-export class PostAttributesRepository extends Repository {
+export class SqlitePostAttributesRepository extends SqliteRepository {
   public async readOrAddName(name: string): Promise<number> {
     const id = await this.readName(name);
     if (id === null) {
@@ -71,4 +71,4 @@ export class PostAttributesRepository extends Repository {
   }
 }
 
-export default PostAttributesRepository;
+export default SqlitePostAttributesRepository;

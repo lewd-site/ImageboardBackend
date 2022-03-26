@@ -1,6 +1,6 @@
 import Board from '../../models/board';
 import IBoardRepository from '../../models/board-repository';
-import Repository from './repository';
+import SqliteRepository from './repository';
 
 interface BoardDto {
   readonly id: number;
@@ -10,13 +10,13 @@ interface BoardDto {
   readonly created_at: number;
 }
 
-export class BoardRepository extends Repository implements IBoardRepository {
+export class SqliteBoardRepository extends SqliteRepository implements IBoardRepository {
   protected static readonly PER_PAGE = 100;
   protected static readonly MS_IN_SECOND = 1000;
 
   public async browse(page: number = 0): Promise<Board[]> {
-    const limit = BoardRepository.PER_PAGE;
-    const offset = Math.max(0, Math.floor(page)) * BoardRepository.PER_PAGE;
+    const limit = SqliteBoardRepository.PER_PAGE;
+    const offset = Math.max(0, Math.floor(page)) * SqliteBoardRepository.PER_PAGE;
     const sql = `SELECT * FROM boards
       ORDER BY post_count DESC, id DESC
       LIMIT ${limit} OFFSET ${offset}`;
@@ -107,10 +107,10 @@ export class BoardRepository extends Repository implements IBoardRepository {
       +dto.id,
       dto.slug,
       dto.title,
-      new Date(dto.created_at * BoardRepository.MS_IN_SECOND),
+      new Date(dto.created_at * SqliteBoardRepository.MS_IN_SECOND),
       +dto.post_count
     );
   }
 }
 
-export default BoardRepository;
+export default SqliteBoardRepository;

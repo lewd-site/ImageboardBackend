@@ -3,8 +3,8 @@ import File from '../../models/file';
 import IFileRepository from '../../models/file-repository';
 import Post from '../../models/post';
 import Thread from '../../models/thread';
-import PostAttributesRepository from './post-attributes-repository';
-import Repository from './repository';
+import SqlitePostAttributesRepository from './post-attributes-repository';
+import SqliteRepository from './repository';
 
 interface FileDto {
   readonly id: number;
@@ -21,10 +21,10 @@ interface FileDto {
   readonly created_at: number;
 }
 
-export class FileRepository extends Repository implements IFileRepository {
+export class SqliteFileRepository extends SqliteRepository implements IFileRepository {
   protected static readonly MS_IN_SECOND = 1000;
 
-  public constructor(db: sqlite3.Database, protected readonly postAttributesRepository: PostAttributesRepository) {
+  public constructor(db: sqlite3.Database, protected readonly postAttributesRepository: SqlitePostAttributesRepository) {
     super(db);
   }
 
@@ -150,9 +150,9 @@ export class FileRepository extends Repository implements IFileRepository {
       dto.height,
       dto.length,
       dto.ip,
-      new Date(dto.created_at * FileRepository.MS_IN_SECOND)
+      new Date(dto.created_at * SqliteFileRepository.MS_IN_SECOND)
     );
   }
 }
 
-export default FileRepository;
+export default SqliteFileRepository;

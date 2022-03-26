@@ -3,8 +3,8 @@ import Board from '../../models/board';
 import { Node } from '../../models/markup';
 import Post from '../../models/post';
 import IPostRepository from '../../models/post-repository';
-import PostAttributesRepository from './post-attributes-repository';
-import Repository from './repository';
+import SqlitePostAttributesRepository from './post-attributes-repository';
+import SqliteRepository from './repository';
 
 interface PostDto {
   readonly id: number;
@@ -25,11 +25,11 @@ interface PostDto {
   readonly created_at: number;
 }
 
-export class PostRepository extends Repository implements IPostRepository {
+export class SqlitePostRepository extends SqliteRepository implements IPostRepository {
   protected static readonly PER_PAGE = 100;
   protected static readonly MS_IN_SECOND = 1000;
 
-  public constructor(db: sqlite3.Database, protected readonly postAttributesRepository: PostAttributesRepository) {
+  public constructor(db: sqlite3.Database, protected readonly postAttributesRepository: SqlitePostAttributesRepository) {
     super(db);
   }
 
@@ -139,7 +139,7 @@ export class PostRepository extends Repository implements IPostRepository {
         +dto.board_id,
         dto.board_slug,
         dto.board_title,
-        new Date(+dto.board_created_at * PostRepository.MS_IN_SECOND),
+        new Date(+dto.board_created_at * SqlitePostRepository.MS_IN_SECOND),
         +dto.board_post_count
       ),
       +(dto.parent_id || 0),
@@ -148,9 +148,9 @@ export class PostRepository extends Repository implements IPostRepository {
       dto.message,
       JSON.parse(dto.message_parsed),
       dto.ip,
-      new Date(dto.created_at * PostRepository.MS_IN_SECOND)
+      new Date(dto.created_at * SqlitePostRepository.MS_IN_SECOND)
     );
   }
 }
 
-export default PostRepository;
+export default SqlitePostRepository;
