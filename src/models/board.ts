@@ -109,12 +109,19 @@ export class Board {
       throw err;
     }
 
+    await fileRepository.loadForPost(thread);
+
     queue.publish('thread_created', thread.getData());
 
     return thread;
   }
 
-  public async deleteThread(threadRepository: IThreadRepository, queue: IQueue, threadId: number): Promise<Thread> {
+  public async deleteThread(
+    threadRepository: IThreadRepository,
+    fileRepository: IFileRepository,
+    queue: IQueue,
+    threadId: number
+  ): Promise<Thread> {
     let thread = await threadRepository.read(threadId);
     if (thread === null || thread.board.id !== this.id) {
       throw new NotFoundError('threadId');
@@ -124,6 +131,8 @@ export class Board {
     if (thread === null) {
       throw new NotFoundError('threadId');
     }
+
+    await fileRepository.loadForPost(thread);
 
     queue.publish('thread_deleted', thread.getData());
 

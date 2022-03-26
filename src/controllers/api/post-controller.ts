@@ -133,7 +133,6 @@ export class PostController {
         ip
       );
 
-      await this.fileRepository.loadForPost(post);
       await this.fileManager.moveFiles(files);
 
       ctx.status = 201;
@@ -152,7 +151,7 @@ export class PostController {
 
   public delete = async (ctx: Koa.Context) => {
     const id = +(ctx.params.id || 0);
-    const post = await this.postRepository.read(id);
+    let post = await this.postRepository.read(id);
     if (post === null) {
       throw new NotFoundError('id');
     }
@@ -171,8 +170,7 @@ export class PostController {
       }
     }
 
-    await this.fileRepository.loadForPost(post);
-    await thread.deletePost(this.postRepository, this.queue, id);
+    post = await thread.deletePost(this.postRepository, this.fileRepository, this.queue, id);
 
     ctx.body = { item: post.getData() };
   };

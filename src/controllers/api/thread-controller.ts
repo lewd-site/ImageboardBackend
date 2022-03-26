@@ -102,7 +102,6 @@ export class ThreadController {
         ip
       );
 
-      await this.fileRepository.loadForPost(thread);
       await this.fileManager.moveFiles(files);
 
       ctx.status = 201;
@@ -121,7 +120,7 @@ export class ThreadController {
 
   public delete = async (ctx: Koa.Context) => {
     const threadId = +(ctx.params.threadId || 0);
-    const thread = await this.threadRepository.read(threadId);
+    let thread = await this.threadRepository.read(threadId);
     if (thread === null) {
       throw new NotFoundError('threadId');
     }
@@ -132,8 +131,7 @@ export class ThreadController {
       throw new NotFoundError('slug');
     }
 
-    await this.fileRepository.loadForPost(thread);
-    await board.deleteThread(this.threadRepository, this.queue, threadId);
+    thread = await board.deleteThread(this.threadRepository, this.fileRepository, this.queue, threadId);
 
     ctx.body = { item: thread.getData() };
   };

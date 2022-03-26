@@ -121,12 +121,19 @@ export class Thread {
       throw err;
     }
 
+    await fileRepository.loadForPost(post);
+
     queue.publish('post_created', post.getData());
 
     return post;
   }
 
-  public async deletePost(postRepository: IPostRepository, queue: IQueue, id: number): Promise<Post> {
+  public async deletePost(
+    postRepository: IPostRepository,
+    fileRepository: IFileRepository,
+    queue: IQueue,
+    id: number
+  ): Promise<Post> {
     let post = await postRepository.read(id);
     if (post === null || post.parentId !== this.id) {
       throw new NotFoundError('id');
@@ -136,6 +143,8 @@ export class Thread {
     if (post === null) {
       throw new NotFoundError('id');
     }
+
+    await fileRepository.loadForPost(post);
 
     queue.publish('post_deleted', post.getData());
 
