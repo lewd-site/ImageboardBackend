@@ -1,4 +1,3 @@
-import { convertBoardModelToDto } from '../controllers/api/types';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import IQueue from './queue';
 import Board from './board';
@@ -40,7 +39,7 @@ export class BoardManager {
       throw new NotFoundError('slug');
     }
 
-    queue.publish('board_created', convertBoardModelToDto(board));
+    queue.publish('board_created', board.getData());
 
     return board;
   }
@@ -86,7 +85,7 @@ export class BoardManager {
       throw new NotFoundError('slug');
     }
 
-    queue.publish('board_updated', convertBoardModelToDto(board));
+    queue.publish('board_updated', board.getData());
 
     return board;
   }
@@ -102,7 +101,7 @@ export class BoardManager {
       throw new NotFoundError('slug');
     }
 
-    queue.publish('board_deleted', convertBoardModelToDto(board));
+    queue.publish('board_deleted', board.getData());
 
     return board;
   }

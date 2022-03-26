@@ -10,7 +10,6 @@ import IThreadRepository from '../../models/thread-repository';
 import ITripcodeGenerator from '../../models/tripcode-generator';
 import { convertMulterFileToUploadedFile } from '../../models/types';
 import IQueue from '../../models/queue';
-import { convertThreadModelToDto } from './types';
 
 export class ThreadController {
   public constructor(
@@ -36,14 +35,14 @@ export class ThreadController {
       const threads = await this.threadRepository.browseForBoard(board.id, page);
       await this.fileRepository.loadForPosts(threads);
 
-      return (ctx.body = { items: threads.map(convertThreadModelToDto) });
+      return (ctx.body = { items: threads.map((thread) => thread.getData()) });
     }
 
     const page = +(ctx.query.page || 0);
     const threads = await this.threadRepository.browse(page);
     await this.fileRepository.loadForPosts(threads);
 
-    ctx.body = { items: threads.map(convertThreadModelToDto) };
+    ctx.body = { items: threads.map((thread) => thread.getData()) };
   };
 
   public show = async (ctx: Koa.Context) => {
@@ -63,7 +62,7 @@ export class ThreadController {
 
     await this.fileRepository.loadForPost(thread);
 
-    ctx.body = { item: convertThreadModelToDto(thread) };
+    ctx.body = { item: thread.getData() };
   };
 
   public create = async (ctx: Koa.Context) => {
@@ -108,7 +107,7 @@ export class ThreadController {
 
       ctx.status = 201;
       ctx.set('Location', `/api/v1/boards/${board.slug}/threads/${thread.id}`);
-      ctx.body = { item: convertThreadModelToDto(thread) };
+      ctx.body = { item: thread.getData() };
     } finally {
       await Promise.all(
         uploadedFiles.map((file) => {
@@ -136,7 +135,7 @@ export class ThreadController {
     await this.fileRepository.loadForPost(thread);
     await board.deleteThread(this.threadRepository, this.queue, threadId);
 
-    ctx.body = { item: convertThreadModelToDto(thread) };
+    ctx.body = { item: thread.getData() };
   };
 }
 

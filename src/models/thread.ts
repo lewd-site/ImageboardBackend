@@ -1,8 +1,7 @@
-import { convertPostModelToDto } from '../controllers/api/types';
 import { NotFoundError, ValidationError } from '../errors';
 import Board from './board';
 import IBoardRepository from './board-repository';
-import File from './file';
+import File, { FileDto } from './file';
 import IFileRepository from './file-repository';
 import { IParser, ITokenizer, Node } from './markup';
 import Post from './post';
@@ -11,6 +10,20 @@ import IQueue from './queue';
 import IThreadRepository from './thread-repository';
 import ITripcodeGenerator from './tripcode-generator';
 import { FileInfo } from './types';
+
+export interface ThreadDto {
+  readonly id: number;
+  readonly slug: string;
+  readonly subject: string | null;
+  readonly name: string | null;
+  readonly tripcode: string | null;
+  readonly message: string;
+  readonly message_parsed: Node[];
+  readonly files: FileDto[];
+  readonly created_at: string;
+  readonly bumped_at: string;
+  readonly post_count: number;
+}
 
 export class Thread {
   public static readonly MAX_NAME_LENGTH = 40;
@@ -108,7 +121,7 @@ export class Thread {
       throw err;
     }
 
-    queue.publish('post_created', convertPostModelToDto(post));
+    queue.publish('post_created', post.getData());
 
     return post;
   }
@@ -124,9 +137,25 @@ export class Thread {
       throw new NotFoundError('id');
     }
 
-    queue.publish('post_deleted', convertPostModelToDto(post));
+    queue.publish('post_deleted', post.getData());
 
     return post;
+  }
+
+  public getData(): ThreadDto {
+    return {
+      id: +this.id,
+      slug: this.board.slug,
+      subject: this.subject,
+      name: this.name,
+      tripcode: this.tripcode,
+      message: this.message,
+      message_parsed: this.parsedMessage,
+      files: this.files.map((file) => file.getData()),
+      created_at: this.createdAt.toISOString(),
+      bumped_at: this.bumpedAt.toISOString(),
+      post_count: +this.postCount,
+    };
   }
 }
 

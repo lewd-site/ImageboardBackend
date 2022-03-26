@@ -3,7 +3,6 @@ import { NotFoundError } from '../../errors';
 import BoardManager from '../../models/board-manager';
 import IBoardRepository from '../../models/board-repository';
 import IQueue from '../../models/queue';
-import { convertBoardModelToDto } from './types';
 
 export class BoardController {
   public constructor(
@@ -15,7 +14,7 @@ export class BoardController {
   public index = async (ctx: Koa.Context) => {
     const page = +(ctx.query.page || 0);
     const boards = await this.boardRepository.browse(page);
-    ctx.body = { items: boards.map(convertBoardModelToDto) };
+    ctx.body = { items: boards.map((board) => board.getData()) };
   };
 
   public show = async (ctx: Koa.Context) => {
@@ -25,7 +24,7 @@ export class BoardController {
       throw new NotFoundError('slug');
     }
 
-    ctx.body = { item: convertBoardModelToDto(board) };
+    ctx.body = { item: board.getData() };
   };
 
   public create = async (ctx: Koa.Context) => {
@@ -38,7 +37,7 @@ export class BoardController {
 
     ctx.status = 201;
     ctx.set('Location', `/api/v1/boards/${board.slug}`);
-    ctx.body = { item: convertBoardModelToDto(board) };
+    ctx.body = { item: board.getData() };
   };
 
   public update = async (ctx: Koa.Context) => {
@@ -50,7 +49,7 @@ export class BoardController {
       throw new NotFoundError('slug');
     }
 
-    ctx.body = { item: convertBoardModelToDto(board) };
+    ctx.body = { item: board.getData() };
   };
 
   public delete = async (ctx: Koa.Context) => {
@@ -60,7 +59,7 @@ export class BoardController {
       throw new NotFoundError('slug');
     }
 
-    ctx.body = { item: convertBoardModelToDto(board) };
+    ctx.body = { item: board.getData() };
   };
 }
 

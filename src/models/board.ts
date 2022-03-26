@@ -1,4 +1,3 @@
-import { convertThreadModelToDto } from '../controllers/api/types';
 import { NotFoundError, ValidationError } from '../errors';
 import IQueue from './queue';
 import IBoardRepository from './board-repository';
@@ -8,6 +7,13 @@ import Thread from './thread';
 import IThreadRepository from './thread-repository';
 import ITripcodeGenerator from './tripcode-generator';
 import { FileInfo } from './types';
+
+export interface BoardDto {
+  readonly slug: string;
+  readonly title: string;
+  readonly created_at: string;
+  readonly post_count: number;
+}
 
 export class Board {
   public static readonly MAX_SLUG_LENGTH = 20;
@@ -103,7 +109,7 @@ export class Board {
       throw err;
     }
 
-    queue.publish('thread_created', convertThreadModelToDto(thread));
+    queue.publish('thread_created', thread.getData());
 
     return thread;
   }
@@ -119,9 +125,18 @@ export class Board {
       throw new NotFoundError('threadId');
     }
 
-    queue.publish('thread_deleted', convertThreadModelToDto(thread));
+    queue.publish('thread_deleted', thread.getData());
 
     return thread;
+  }
+
+  public getData(): BoardDto {
+    return {
+      slug: this.slug,
+      title: this.title,
+      created_at: this.createdAt.toISOString(),
+      post_count: +this.postCount,
+    };
   }
 }
 
