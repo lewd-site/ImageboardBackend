@@ -9,6 +9,7 @@ import { IParser, ITokenizer } from '../../models/markup';
 import IThreadRepository from '../../models/thread-repository';
 import ITripcodeGenerator from '../../models/tripcode-generator';
 import { convertMulterFileToUploadedFile } from '../../models/types';
+import IQueue from '../../models/queue';
 import { convertThreadModelToDto } from './types';
 
 export class ThreadController {
@@ -16,6 +17,7 @@ export class ThreadController {
     protected readonly boardRepository: IBoardRepository,
     protected readonly threadRepository: IThreadRepository,
     protected readonly fileRepository: IFileRepository,
+    protected readonly queue: IQueue,
     protected readonly tripcodeGenerator: ITripcodeGenerator,
     protected readonly tokenizer: ITokenizer,
     protected readonly parser: IParser,
@@ -90,6 +92,7 @@ export class ThreadController {
         this.boardRepository,
         this.threadRepository,
         this.fileRepository,
+        this.queue,
         this.tripcodeGenerator,
         this.tokenizer,
         this.parser,
@@ -131,7 +134,7 @@ export class ThreadController {
     }
 
     await this.fileRepository.loadForPost(thread);
-    await board.deleteThread(this.threadRepository, threadId);
+    await board.deleteThread(this.threadRepository, this.queue, threadId);
 
     ctx.body = { item: convertThreadModelToDto(thread) };
   };

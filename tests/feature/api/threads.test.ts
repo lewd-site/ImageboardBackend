@@ -1,28 +1,38 @@
+import Application from 'koa';
 import path from 'path';
 import sqlite3 from 'sqlite3';
 import request from 'supertest';
 import { createApp } from '../../../src/app';
 import config from '../../../src/config';
+import IQueue from '../../../src/models/queue';
+import DummyQueue from '../../../src/queues/dummy';
 import { setupDatabase } from '../../../src/repositories/sqlite/installer';
 
 let db: sqlite3.Database | null = null;
+let queue: IQueue | null = null;
+let app: Application | null = null;
 
 beforeEach(() => {
   db = new sqlite3.Database(':memory:', sqlite3.OPEN_CREATE | sqlite3.OPEN_READWRITE);
   setupDatabase(db);
+
+  queue = new DummyQueue();
+  queue.connect();
+
+  app = createApp(db, queue);
 });
 
 afterEach(() => {
   db?.close();
+  queue?.disconnect();
 });
 
 test('create thread', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
 
   // Act
-  const response = await request(app.callback())
+  const response = await request(app?.callback())
     .post('/api/v1/threads')
     .field('slug', 'a')
     .field('name', 'Tester')
@@ -65,13 +75,12 @@ test('create thread', async () => {
 
 test('get threads', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 1' });
-  await request(app.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 2' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 2' });
 
   // Act
-  const response = await request(app.callback()).get('/api/v1/threads');
+  const response = await request(app?.callback()).get('/api/v1/threads');
 
   // Assert
   expect(response.status).toEqual(200);
@@ -110,13 +119,12 @@ test('get threads', async () => {
 
 test('get thread', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 1' });
-  await request(app.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 2' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 2' });
 
   // Act
-  const response = await request(app.callback()).get('/api/v1/threads/2');
+  const response = await request(app?.callback()).get('/api/v1/threads/2');
 
   // Assert
   expect(response.status).toEqual(200);
@@ -140,13 +148,12 @@ test('get thread', async () => {
 
 test('get missing thread', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 1' });
-  await request(app.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 2' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 2' });
 
   // Act
-  const response = await request(app.callback()).get('/api/v1/threads/3');
+  const response = await request(app?.callback()).get('/api/v1/threads/3');
 
   // Assert
   expect(response.status).toEqual(404);
@@ -160,13 +167,12 @@ test('get missing thread', async () => {
 
 test('delete thread', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 1' });
-  await request(app.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 2' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 2' });
 
   // Act
-  const response = await request(app.callback())
+  const response = await request(app?.callback())
     .delete('/api/v1/threads/2')
     .set('Authorization', `Bearer ${config.auth.token}`);
 
@@ -192,13 +198,12 @@ test('delete thread', async () => {
 
 test('delete thread without auth', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 1' });
-  await request(app.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 2' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 2' });
 
   // Act
-  const response = await request(app.callback()).delete('/api/v1/threads/2');
+  const response = await request(app?.callback()).delete('/api/v1/threads/2');
 
   // Assert
   expect(response.status).toEqual(401);
@@ -211,13 +216,12 @@ test('delete thread without auth', async () => {
 
 test('delete missing thread', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 1' });
-  await request(app.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 2' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback()).post('/api/v1/threads').send({ slug: 'a', name: 'Tester', message: 'Test thread 2' });
 
   // Act
-  const response = await request(app.callback())
+  const response = await request(app?.callback())
     .delete('/api/v1/threads/3')
     .set('Authorization', `Bearer ${config.auth.token}`);
 

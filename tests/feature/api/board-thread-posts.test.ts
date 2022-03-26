@@ -1,29 +1,39 @@
+import Application from 'koa';
 import path from 'path';
 import sqlite3 from 'sqlite3';
 import request from 'supertest';
 import { createApp } from '../../../src/app';
 import config from '../../../src/config';
+import IQueue from '../../../src/models/queue';
+import DummyQueue from '../../../src/queues/dummy';
 import { setupDatabase } from '../../../src/repositories/sqlite/installer';
 
 let db: sqlite3.Database | null = null;
+let queue: IQueue | null = null;
+let app: Application | null = null;
 
 beforeEach(() => {
   db = new sqlite3.Database(':memory:', sqlite3.OPEN_CREATE | sqlite3.OPEN_READWRITE);
   setupDatabase(db);
+
+  queue = new DummyQueue();
+  queue.connect();
+
+  app = createApp(db, queue);
 });
 
 afterEach(() => {
   db?.close();
+  queue?.disconnect();
 });
 
 test('create post', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
 
   // Act
-  const response = await request(app.callback())
+  const response = await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .send({ name: 'Tester', message: 'Test reply 1' });
 
@@ -48,12 +58,11 @@ test('create post', async () => {
 
 test('create post with file', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
 
   // Act
-  const response = await request(app.callback())
+  const response = await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .field('name', 'Tester')
     .field('message', 'Test reply 1')
@@ -93,19 +102,18 @@ test('create post with file', async () => {
 
 test('get posts', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
-  await request(app.callback())
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .send({ name: 'Tester', message: 'Test reply 1' });
 
-  await request(app.callback())
+  await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .send({ name: 'Tester', message: 'Test reply 2' });
 
   // Act
-  const response = await request(app.callback()).get('/api/v1/boards/a/threads/1/posts');
+  const response = await request(app?.callback()).get('/api/v1/boards/a/threads/1/posts');
 
   // Assert
   expect(response.status).toEqual(200);
@@ -151,19 +159,18 @@ test('get posts', async () => {
 
 test('get post', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
-  await request(app.callback())
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .send({ name: 'Tester', message: 'Test reply 1' });
 
-  await request(app.callback())
+  await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .send({ name: 'Tester', message: 'Test reply 2' });
 
   // Act
-  const response = await request(app.callback()).get('/api/v1/boards/a/threads/1/posts/3');
+  const response = await request(app?.callback()).get('/api/v1/boards/a/threads/1/posts/3');
 
   // Assert
   expect(response.status).toEqual(200);
@@ -185,19 +192,18 @@ test('get post', async () => {
 
 test('get missing post', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
-  await request(app.callback())
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .send({ name: 'Tester', message: 'Test reply 1' });
 
-  await request(app.callback())
+  await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .send({ name: 'Tester', message: 'Test reply 2' });
 
   // Act
-  const response = await request(app.callback()).get('/api/v1/boards/a/threads/1/posts/4');
+  const response = await request(app?.callback()).get('/api/v1/boards/a/threads/1/posts/4');
 
   // Assert
   expect(response.status).toEqual(404);
@@ -211,19 +217,18 @@ test('get missing post', async () => {
 
 test('delete post', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
-  await request(app.callback())
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .send({ name: 'Tester', message: 'Test reply 1' });
 
-  await request(app.callback())
+  await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .send({ name: 'Tester', message: 'Test reply 2' });
 
   // Act
-  const response = await request(app.callback())
+  const response = await request(app?.callback())
     .delete('/api/v1/boards/a/threads/1/posts/3')
     .set('Authorization', `Bearer ${config.auth.token}`);
 
@@ -247,19 +252,18 @@ test('delete post', async () => {
 
 test('delete post without auth', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
-  await request(app.callback())
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .send({ name: 'Tester', message: 'Test reply 1' });
 
-  await request(app.callback())
+  await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .send({ name: 'Tester', message: 'Test reply 2' });
 
   // Act
-  const response = await request(app.callback()).delete('/api/v1/boards/a/threads/1/posts/3');
+  const response = await request(app?.callback()).delete('/api/v1/boards/a/threads/1/posts/3');
 
   // Assert
   expect(response.status).toEqual(401);
@@ -272,19 +276,18 @@ test('delete post without auth', async () => {
 
 test('delete missing post', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
-  await request(app.callback())
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .send({ name: 'Tester', message: 'Test reply 1' });
 
-  await request(app.callback())
+  await request(app?.callback())
     .post('/api/v1/boards/a/threads/1/posts')
     .send({ name: 'Tester', message: 'Test reply 2' });
 
   // Act
-  const response = await request(app.callback())
+  const response = await request(app?.callback())
     .delete('/api/v1/boards/a/threads/1/posts/4')
     .set('Authorization', `Bearer ${config.auth.token}`);
 

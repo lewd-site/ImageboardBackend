@@ -1,4 +1,6 @@
+import { convertThreadModelToDto } from '../controllers/api/types';
 import { NotFoundError, ValidationError } from '../errors';
+import IQueue from './queue';
 import IBoardRepository from './board-repository';
 import IFileRepository from './file-repository';
 import { IParser, ITokenizer } from './markup';
@@ -34,6 +36,7 @@ export class Board {
     boardRepository: IBoardRepository,
     threadRepository: IThreadRepository,
     fileRepository: IFileRepository,
+    queue: IQueue,
     tripcodeGenerator: ITripcodeGenerator,
     tokenizer: ITokenizer,
     parser: IParser,
@@ -100,10 +103,12 @@ export class Board {
       throw err;
     }
 
+    queue.publish('thread_created', convertThreadModelToDto(thread));
+
     return thread;
   }
 
-  public async deleteThread(threadRepository: IThreadRepository, threadId: number): Promise<Thread> {
+  public async deleteThread(threadRepository: IThreadRepository, queue: IQueue, threadId: number): Promise<Thread> {
     let thread = await threadRepository.read(threadId);
     if (thread === null || thread.board.id !== this.id) {
       throw new NotFoundError('threadId');
@@ -113,6 +118,8 @@ export class Board {
     if (thread === null) {
       throw new NotFoundError('threadId');
     }
+
+    queue.publish('thread_deleted', convertThreadModelToDto(thread));
 
     return thread;
   }

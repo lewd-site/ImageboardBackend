@@ -19,6 +19,9 @@ export const config = {
   ffmpeg: {
     path: env.FFMPEG_PATH || 'ffmpeg',
   },
+  rabbit: {
+    host: env.RABBIT_HOST || 'amqp://127.0.0.1:5672',
+  },
 };
 
 export default config;

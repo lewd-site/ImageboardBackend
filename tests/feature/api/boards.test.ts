@@ -1,26 +1,34 @@
+import Application from 'koa';
 import sqlite3 from 'sqlite3';
 import request from 'supertest';
 import { createApp } from '../../../src/app';
 import config from '../../../src/config';
+import IQueue from '../../../src/models/queue';
+import DummyQueue from '../../../src/queues/dummy';
 import { setupDatabase } from '../../../src/repositories/sqlite/installer';
 
 let db: sqlite3.Database | null = null;
+let queue: IQueue | null = null;
+let app: Application | null = null;
 
 beforeEach(() => {
   db = new sqlite3.Database(':memory:', sqlite3.OPEN_CREATE | sqlite3.OPEN_READWRITE);
   setupDatabase(db);
+
+  queue = new DummyQueue();
+  queue.connect();
+
+  app = createApp(db, queue);
 });
 
 afterEach(() => {
   db?.close();
+  queue?.disconnect();
 });
 
 test('create board', async () => {
-  // Arrange
-  const app = createApp(db!);
-
   // Act
-  const response = await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  const response = await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
 
   // Assert
   expect(response.status).toEqual(201);
@@ -38,12 +46,11 @@ test('create board', async () => {
 
 test('get boards', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
 
   // Act
-  const response = await request(app.callback()).get('/api/v1/boards');
+  const response = await request(app?.callback()).get('/api/v1/boards');
 
   // Assert
   expect(response.status).toEqual(200);
@@ -68,12 +75,11 @@ test('get boards', async () => {
 
 test('get board', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
 
   // Act
-  const response = await request(app.callback()).get('/api/v1/boards/d');
+  const response = await request(app?.callback()).get('/api/v1/boards/d');
 
   // Assert
   expect(response.status).toEqual(200);
@@ -90,12 +96,11 @@ test('get board', async () => {
 
 test('get missing board', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
 
   // Act
-  const response = await request(app.callback()).get('/api/v1/boards/c');
+  const response = await request(app?.callback()).get('/api/v1/boards/c');
 
   // Assert
   expect(response.status).toEqual(404);
@@ -109,12 +114,11 @@ test('get missing board', async () => {
 
 test('update board', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
 
   // Act
-  const response = await request(app.callback())
+  const response = await request(app?.callback())
     .put('/api/v1/boards/d')
     .set('Authorization', `Bearer ${config.auth.token}`)
     .send({ slug: 'c', title: 'Coding' });
@@ -134,12 +138,11 @@ test('update board', async () => {
 
 test('update board without auth', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
 
   // Act
-  const response = await request(app.callback()).put('/api/v1/boards/d').send({ slug: 'c', title: 'Coding' });
+  const response = await request(app?.callback()).put('/api/v1/boards/d').send({ slug: 'c', title: 'Coding' });
 
   // Assert
   expect(response.status).toEqual(401);
@@ -152,12 +155,11 @@ test('update board without auth', async () => {
 
 test('update missing board', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
 
   // Act
-  const response = await request(app.callback())
+  const response = await request(app?.callback())
     .put('/api/v1/boards/c')
     .set('Authorization', `Bearer ${config.auth.token}`)
     .send({ slug: 'c', title: 'Coding' });
@@ -174,12 +176,11 @@ test('update missing board', async () => {
 
 test('delete board', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
 
   // Act
-  const response = await request(app.callback())
+  const response = await request(app?.callback())
     .delete('/api/v1/boards/d')
     .set('Authorization', `Bearer ${config.auth.token}`);
 
@@ -198,12 +199,11 @@ test('delete board', async () => {
 
 test('delete board without auth', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
 
   // Act
-  const response = await request(app.callback()).delete('/api/v1/boards/d');
+  const response = await request(app?.callback()).delete('/api/v1/boards/d');
 
   // Assert
   expect(response.status).toEqual(401);
@@ -216,12 +216,11 @@ test('delete board without auth', async () => {
 
 test('delete missing board', async () => {
   // Arrange
-  const app = createApp(db!);
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'd', title: 'Development' });
 
   // Act
-  const response = await request(app.callback())
+  const response = await request(app?.callback())
     .delete('/api/v1/boards/c')
     .set('Authorization', `Bearer ${config.auth.token}`);
 

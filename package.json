@@ -7,6 +7,7 @@
   "private": true,
   "dependencies": {
     "@koa/multer": "^3.0.0",
+    "amqplib": "^0.8.0",
     "dotenv": "^16.0.0",
     "ffprobe": "^1.1.2",
     "koa": "^2.13.4",
@@ -23,6 +24,7 @@
     "tripcode": "^2.0.0"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.8.2",
     "@types/ffprobe": "^1.1.3",
     "@types/jest": "^27.4.1",
     "@types/koa": "^2.13.4",

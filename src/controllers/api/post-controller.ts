@@ -10,6 +10,7 @@ import IPostRepository from '../../models/post-repository';
 import IThreadRepository from '../../models/thread-repository';
 import ITripcodeGenerator from '../../models/tripcode-generator';
 import { convertMulterFileToUploadedFile } from '../../models/types';
+import IQueue from '../../models/queue';
 import { convertPostModelToDto } from './types';
 
 export class PostController {
@@ -18,6 +19,7 @@ export class PostController {
     protected readonly threadRepository: IThreadRepository,
     protected readonly postRepository: IPostRepository,
     protected readonly fileRepository: IFileRepository,
+    protected readonly queue: IQueue,
     protected readonly tripcodeGenerator: ITripcodeGenerator,
     protected readonly tokenizer: ITokenizer,
     protected readonly parser: IParser,
@@ -122,6 +124,7 @@ export class PostController {
         this.threadRepository,
         this.postRepository,
         this.fileRepository,
+        this.queue,
         this.tripcodeGenerator,
         this.tokenizer,
         this.parser,
@@ -170,7 +173,7 @@ export class PostController {
     }
 
     await this.fileRepository.loadForPost(post);
-    await thread.deletePost(this.postRepository, id);
+    await thread.deletePost(this.postRepository, this.queue, id);
 
     ctx.body = { item: convertPostModelToDto(post) };
   };

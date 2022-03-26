@@ -1,3 +1,4 @@
+import { convertPostModelToDto } from '../controllers/api/types';
 import { NotFoundError, ValidationError } from '../errors';
 import Board from './board';
 import IBoardRepository from './board-repository';
@@ -6,6 +7,7 @@ import IFileRepository from './file-repository';
 import { IParser, ITokenizer, Node } from './markup';
 import Post from './post';
 import IPostRepository from './post-repository';
+import IQueue from './queue';
 import IThreadRepository from './thread-repository';
 import ITripcodeGenerator from './tripcode-generator';
 import { FileInfo } from './types';
@@ -36,6 +38,7 @@ export class Thread {
     threadRepository: IThreadRepository,
     postRepository: IPostRepository,
     fileRepository: IFileRepository,
+    queue: IQueue,
     tripcodeGenerator: ITripcodeGenerator,
     tokenizer: ITokenizer,
     parser: IParser,
@@ -105,10 +108,12 @@ export class Thread {
       throw err;
     }
 
+    queue.publish('post_created', convertPostModelToDto(post));
+
     return post;
   }
 
-  public async deletePost(postRepository: IPostRepository, id: number): Promise<Post> {
+  public async deletePost(postRepository: IPostRepository, queue: IQueue, id: number): Promise<Post> {
     let post = await postRepository.read(id);
     if (post === null || post.parentId !== this.id) {
       throw new NotFoundError('id');
@@ -118,6 +123,8 @@ export class Thread {
     if (post === null) {
       throw new NotFoundError('id');
     }
+
+    queue.publish('post_deleted', convertPostModelToDto(post));
 
     return post;
   }

@@ -24,10 +24,11 @@ import ThreadRepository from './repositories/sqlite/thread-repository';
 import { WakabaTripcodeGenerator } from './wakaba-tripcode-generator';
 import { Thumbnailer } from './thumbnailer';
 import FileController from './controllers/api/file-controller';
+import IQueue from './models/queue';
 
 const MS_IN_WEEK = 1000 * 60 * 60 * 24 * 7;
 
-export function createApp(db: sqlite3.Database) {
+export function createApp(db: sqlite3.Database, queue: IQueue) {
   const boardRepository = new BoardRepository(db);
   const postAttributesRepository = new PostAttributesRepository(db);
   const threadRepository = new ThreadRepository(db, postAttributesRepository);
@@ -41,12 +42,13 @@ export function createApp(db: sqlite3.Database) {
   const tokenizer = new Tokenizer();
   const parser = new Parser();
 
-  const boardController = new BoardController(boardRepository, boardManager);
+  const boardController = new BoardController(boardRepository, queue, boardManager);
 
   const threadController = new ThreadController(
     boardRepository,
     threadRepository,
     fileRepository,
+    queue,
     tripcodeGenerator,
     tokenizer,
     parser,
@@ -58,6 +60,7 @@ export function createApp(db: sqlite3.Database) {
     threadRepository,
     postRepository,
     fileRepository,
+    queue,
     tripcodeGenerator,
     tokenizer,
     parser,
