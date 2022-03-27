@@ -68,7 +68,7 @@ export class Thread {
       throw new ValidationError('name', 'max-length');
     }
 
-    if (!message.length) {
+    if (!message.length && !files.length) {
       throw new ValidationError('message', 'required');
     }
 

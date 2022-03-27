@@ -27,10 +27,22 @@ afterEach(() => {
   queue?.disconnect();
 });
 
+async function createBoard(slug: string, title: string): Promise<void> {
+  await request(app?.callback()).post('/api/v1/boards').send({ slug, title });
+}
+
+async function createThread(name: string, message: string): Promise<void> {
+  await request(app?.callback())
+    .post('/api/v1/boards/a/threads')
+    .field('name', name)
+    .field('message', message)
+    .attach('files', path.resolve(__dirname, '..', '..', 'data', 'test.jpg'));
+}
+
 test('create post', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
 
   // Act
   const response = await request(app?.callback())
@@ -58,8 +70,8 @@ test('create post', async () => {
 
 test('create post with file', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
 
   // Act
   const response = await request(app?.callback())
@@ -103,8 +115,9 @@ test('create post with file', async () => {
 
 test('get posts', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
+
   await request(app?.callback())
     .post('/api/v1/boards/a/posts')
     .send({ parentId: 1, name: 'Tester', message: 'Test reply 1' });
@@ -129,7 +142,20 @@ test('get posts', async () => {
         tripcode: null,
         message: 'Test thread 1',
         message_parsed: [{ type: 'text', text: 'Test thread 1' }],
-        files: [],
+        files: [
+          {
+            hash: '0543ea6b3b10944ac126bfdc4e387c4e',
+            name: 'test.jpg',
+            extension: 'jpg',
+            path: 'original/0543ea6b3b10944ac126bfdc4e387c4e.jpg',
+            type: 'image/jpeg',
+            size: 162928,
+            width: 600,
+            height: 900,
+            length: null,
+            created_at: expect.any(String),
+          },
+        ],
         created_at: expect.any(String),
       },
       {
@@ -160,8 +186,9 @@ test('get posts', async () => {
 
 test('get post', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
+
   await request(app?.callback())
     .post('/api/v1/boards/a/posts')
     .send({ parentId: 1, name: 'Tester', message: 'Test reply 1' });
@@ -193,8 +220,9 @@ test('get post', async () => {
 
 test('get missing post', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
+
   await request(app?.callback())
     .post('/api/v1/boards/a/posts')
     .send({ parentId: 1, name: 'Tester', message: 'Test reply 1' });
@@ -218,8 +246,9 @@ test('get missing post', async () => {
 
 test('delete post', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
+
   await request(app?.callback())
     .post('/api/v1/boards/a/posts')
     .send({ parentId: 1, name: 'Tester', message: 'Test reply 1' });
@@ -253,8 +282,9 @@ test('delete post', async () => {
 
 test('delete post without auth', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
+
   await request(app?.callback())
     .post('/api/v1/boards/a/posts')
     .send({ parentId: 1, name: 'Tester', message: 'Test reply 1' });
@@ -277,8 +307,9 @@ test('delete post without auth', async () => {
 
 test('delete missing post', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
+
   await request(app?.callback())
     .post('/api/v1/boards/a/posts')
     .send({ parentId: 1, name: 'Tester', message: 'Test reply 1' });

@@ -68,6 +68,10 @@ export class Board {
       throw new ValidationError('message', 'max-length');
     }
 
+    if (!files.length) {
+      throw new ValidationError('files', 'required');
+    }
+
     const author = tripcodeGenerator.createTripcode(name);
     const tokens = tokenizer.tokenize(message);
     const parsedMessage = parser.parse(tokens);

@@ -27,9 +27,21 @@ afterEach(() => {
   queue?.disconnect();
 });
 
+async function createBoard(slug: string, title: string): Promise<void> {
+  await request(app?.callback()).post('/api/v1/boards').send({ slug, title });
+}
+
+async function createThread(name: string, message: string): Promise<void> {
+  await request(app?.callback())
+    .post('/api/v1/boards/a/threads')
+    .field('name', name)
+    .field('message', message)
+    .attach('files', path.resolve(__dirname, '..', '..', 'data', 'test.jpg'));
+}
+
 test('create thread', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
+  await createBoard('a', 'Anime');
 
   // Act
   const response = await request(app?.callback())
@@ -74,9 +86,9 @@ test('create thread', async () => {
 
 test('get threads', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 2' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
+  await createThread('Tester', 'Test thread 2');
 
   // Act
   const response = await request(app?.callback()).get('/api/v1/boards/a/threads');
@@ -94,7 +106,20 @@ test('get threads', async () => {
         tripcode: null,
         message: 'Test thread 2',
         message_parsed: [{ type: 'text', text: 'Test thread 2' }],
-        files: [],
+        files: [
+          {
+            hash: '0543ea6b3b10944ac126bfdc4e387c4e',
+            name: 'test.jpg',
+            extension: 'jpg',
+            path: 'original/0543ea6b3b10944ac126bfdc4e387c4e.jpg',
+            type: 'image/jpeg',
+            size: 162928,
+            width: 600,
+            height: 900,
+            length: null,
+            created_at: expect.any(String),
+          },
+        ],
         post_count: 1,
         created_at: expect.any(String),
         bumped_at: expect.any(String),
@@ -107,7 +132,20 @@ test('get threads', async () => {
         tripcode: null,
         message: 'Test thread 1',
         message_parsed: [{ type: 'text', text: 'Test thread 1' }],
-        files: [],
+        files: [
+          {
+            hash: '0543ea6b3b10944ac126bfdc4e387c4e',
+            name: 'test.jpg',
+            extension: 'jpg',
+            path: 'original/0543ea6b3b10944ac126bfdc4e387c4e.jpg',
+            type: 'image/jpeg',
+            size: 162928,
+            width: 600,
+            height: 900,
+            length: null,
+            created_at: expect.any(String),
+          },
+        ],
         post_count: 1,
         created_at: expect.any(String),
         bumped_at: expect.any(String),
@@ -118,9 +156,9 @@ test('get threads', async () => {
 
 test('get thread', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 2' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
+  await createThread('Tester', 'Test thread 2');
 
   // Act
   const response = await request(app?.callback()).get('/api/v1/boards/a/threads/2');
@@ -137,7 +175,20 @@ test('get thread', async () => {
       tripcode: null,
       message: 'Test thread 2',
       message_parsed: [{ type: 'text', text: 'Test thread 2' }],
-      files: [],
+      files: [
+        {
+          hash: '0543ea6b3b10944ac126bfdc4e387c4e',
+          name: 'test.jpg',
+          extension: 'jpg',
+          path: 'original/0543ea6b3b10944ac126bfdc4e387c4e.jpg',
+          type: 'image/jpeg',
+          size: 162928,
+          width: 600,
+          height: 900,
+          length: null,
+          created_at: expect.any(String),
+        },
+      ],
       post_count: 1,
       created_at: expect.any(String),
       bumped_at: expect.any(String),
@@ -147,9 +198,9 @@ test('get thread', async () => {
 
 test('get missing thread', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 2' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
+  await createThread('Tester', 'Test thread 2');
 
   // Act
   const response = await request(app?.callback()).get('/api/v1/boards/a/threads/3');
@@ -166,9 +217,9 @@ test('get missing thread', async () => {
 
 test('delete thread', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 2' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
+  await createThread('Tester', 'Test thread 2');
 
   // Act
   const response = await request(app?.callback())
@@ -187,7 +238,20 @@ test('delete thread', async () => {
       tripcode: null,
       message: 'Test thread 2',
       message_parsed: [{ type: 'text', text: 'Test thread 2' }],
-      files: [],
+      files: [
+        {
+          hash: '0543ea6b3b10944ac126bfdc4e387c4e',
+          name: 'test.jpg',
+          extension: 'jpg',
+          path: 'original/0543ea6b3b10944ac126bfdc4e387c4e.jpg',
+          type: 'image/jpeg',
+          size: 162928,
+          width: 600,
+          height: 900,
+          length: null,
+          created_at: expect.any(String),
+        },
+      ],
       post_count: 1,
       created_at: expect.any(String),
       bumped_at: expect.any(String),
@@ -197,9 +261,9 @@ test('delete thread', async () => {
 
 test('delete thread without auth', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 2' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
+  await createThread('Tester', 'Test thread 2');
 
   // Act
   const response = await request(app?.callback()).delete('/api/v1/boards/a/threads/2');
@@ -215,9 +279,9 @@ test('delete thread without auth', async () => {
 
 test('delete missing thread', async () => {
   // Arrange
-  await request(app?.callback()).post('/api/v1/boards').send({ slug: 'a', title: 'Anime' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 1' });
-  await request(app?.callback()).post('/api/v1/boards/a/threads').send({ name: 'Tester', message: 'Test thread 2' });
+  await createBoard('a', 'Anime');
+  await createThread('Tester', 'Test thread 1');
+  await createThread('Tester', 'Test thread 2');
 
   // Act
   const response = await request(app?.callback())
