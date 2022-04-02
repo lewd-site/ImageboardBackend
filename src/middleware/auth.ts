@@ -11,3 +11,5 @@ export function auth() {
     await next();
   };
 }
+
+export default auth;
