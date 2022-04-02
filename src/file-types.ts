@@ -26,37 +26,7 @@ const fileTypes: FileType[] = [
     mime: 'image/webp',
   },
   {
-    signatures: [
-      { position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01]) },
-    ],
-    ext: 'jpg',
-    mime: 'image/jpeg',
-  },
-  {
-    signatures: [
-      { position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe1]) },
-      { position: 6, buffer: Buffer.from([0x45, 0x78, 0x69, 0x66, 0x00, 0x00]) },
-    ],
-    ext: 'jpg',
-    mime: 'image/jpeg',
-  },
-  {
-    signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe2]) }],
-    ext: 'jpg',
-    mime: 'image/jpeg',
-  },
-  {
-    signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe3]) }],
-    ext: 'jpg',
-    mime: 'image/jpeg',
-  },
-  {
-    signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xee]) }],
-    ext: 'jpg',
-    mime: 'image/jpeg',
-  },
-  {
-    signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff, 0xdb]) }],
+    signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xd8, 0xff]) }],
     ext: 'jpg',
     mime: 'image/jpeg',
   },
@@ -143,6 +113,8 @@ export async function detectFileType(path: string): Promise<Result | null> {
       return { extension: fileType.ext, mimeType: fileType.mime };
     }
   }
+
+  console.log(buffer);
 
   return null;
 }
