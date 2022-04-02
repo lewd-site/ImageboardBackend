@@ -135,6 +135,13 @@ export class PostController {
 
       await this.fileManager.moveFiles(files);
 
+      const { redirect } = ctx.request.query;
+      if (typeof redirect !== 'undefined') {
+        ctx.status = 303;
+        ctx.set('Location', redirect);
+        return;
+      }
+
       ctx.status = 201;
       ctx.set('Location', `/api/v1/boards/${thread.board.slug}/threads/${thread.id}/posts/${post.id}`);
       ctx.body = { item: post.getData() };

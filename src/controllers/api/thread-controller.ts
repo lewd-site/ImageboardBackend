@@ -104,6 +104,13 @@ export class ThreadController {
 
       await this.fileManager.moveFiles(files);
 
+      const { redirect } = ctx.request.query;
+      if (typeof redirect !== 'undefined') {
+        ctx.status = 303;
+        ctx.set('Location', redirect);
+        return;
+      }
+
       ctx.status = 201;
       ctx.set('Location', `/api/v1/boards/${board.slug}/threads/${thread.id}`);
       ctx.body = { item: thread.getData() };
