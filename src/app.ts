@@ -3,6 +3,7 @@ import bodyParser from 'koa-bodyparser';
 import Router from 'koa-router';
 import multer from '@koa/multer';
 import helmet from 'koa-helmet';
+import cors from '@koa/cors';
 import conditional from 'koa-conditional-get';
 import etag from 'koa-etag';
 import serve from 'koa-static';
@@ -126,6 +127,7 @@ export function createApp(db: sqlite3.Database, queue: IQueue) {
   app.use(helmet.noSniff());
   app.use(helmet.dnsPrefetchControl());
   app.use(helmet.hidePoweredBy());
+  app.use(cors());
   app.use(conditional());
   app.use(etag());
   app.use(serve('public', { maxAge: MS_IN_WEEK }));
