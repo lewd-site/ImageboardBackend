@@ -52,8 +52,8 @@ export class Board {
     files: FileInfo[],
     ip: string
   ): Promise<Thread> {
-    if (!name.length) {
-      throw new ValidationError('name', 'required');
+    if (subject.length > Thread.MAX_SUBJECT_LENGTH) {
+      throw new ValidationError('subject', 'max-length');
     }
 
     if (name.length > Thread.MAX_NAME_LENGTH) {

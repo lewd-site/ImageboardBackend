@@ -26,6 +26,7 @@ export interface ThreadDto {
 }
 
 export class Thread {
+  public static readonly MAX_SUBJECT_LENGTH = 40;
   public static readonly MAX_NAME_LENGTH = 40;
   public static readonly MAX_MESSAGE_LENGTH = 8000;
   public static readonly BUMP_LIMIT = 500;
@@ -60,10 +61,6 @@ export class Thread {
     files: FileInfo[],
     ip: string
   ): Promise<Post> {
-    if (!name.length) {
-      throw new ValidationError('name', 'required');
-    }
-
     if (name.length > Thread.MAX_NAME_LENGTH) {
       throw new ValidationError('name', 'max-length');
     }
