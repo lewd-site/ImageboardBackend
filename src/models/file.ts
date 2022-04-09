@@ -25,6 +25,7 @@ export class File {
     'video/mp4',
     'audio/mpeg',
     'audio/mp4',
+    'audio/flac',
     'audio/x-flac',
     'audio/wav',
     'audio/x-wav',
