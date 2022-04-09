@@ -90,7 +90,7 @@ const fileTypes: FileType[] = [
       { position: 0, buffer: Buffer.from([0x52, 0x49, 0x46, 0x46]) },
       { position: 8, buffer: Buffer.from([0x57, 0x41, 0x56, 0x45]) },
     ],
-    ext: 'mp3',
+    ext: 'wav',
     mime: 'audio/vnd.wave',
   },
 ];

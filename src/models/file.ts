@@ -26,6 +26,8 @@ export class File {
     'audio/mpeg',
     'audio/mp4',
     'audio/x-flac',
+    'audio/wav',
+    'audio/x-wav',
     'audio/vnd.wave',
   ];
   public static readonly ALLOWED_THUMBNAIL_EXTENSIONS = ['webp', 'jpg', 'png'];
