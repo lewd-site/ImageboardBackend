@@ -56,7 +56,7 @@ const fileTypes: FileType[] = [
     mime: 'video/webm',
   },
   {
-    signatures: [{ position: 4, buffer: Buffer.from([0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d]) }],
+    signatures: [{ position: 4, buffer: Buffer.from([0x66, 0x74, 0x79, 0x70]) }],
     ext: 'mp4',
     mime: 'video/mp4',
   },
