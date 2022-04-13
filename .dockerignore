@@ -1,0 +1,7 @@
+dist
+node_modules
+public
+tmp
+.env
+db.sqlite3
+yarn-error.log

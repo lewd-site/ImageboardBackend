@@ -2,6 +2,7 @@ import ffprobe from 'ffprobe';
 import { existsSync } from 'fs';
 import { mkdir, rename } from 'fs/promises';
 import md5 from 'md5-file';
+import mv from 'mv';
 import path from 'path';
 import config from '../config';
 import { ValidationError } from '../errors';
@@ -93,13 +94,17 @@ export class FileManager {
     await Promise.all(files.map(this.moveFile));
   };
 
-  public moveFile = async (file: FileInfo): Promise<void> => {
-    if (!existsSync(UPLOAD_DIR)) {
-      await mkdir(UPLOAD_DIR, { recursive: true });
-    }
-
+  public moveFile = (file: FileInfo): Promise<void> => {
     const uploadPath = path.resolve(UPLOAD_DIR, `${file.hash}.${file.extension}`);
-    await rename(file.path, uploadPath);
+    return new Promise((resolve, reject) => {
+      mv(file.path, uploadPath, { mkdirp: true }, (err) => {
+        if (err !== null) {
+          reject(err);
+        }
+
+        resolve();
+      });
+    });
   };
 
   public createThumbnail = async (file: File, extension: string): Promise<string> => {

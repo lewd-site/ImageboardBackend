@@ -1,4 +1,3 @@
-const webpack = require('webpack');
 const path = require('path');
 
 module.exports = {
@@ -37,5 +36,5 @@ module.exports = {
     sqlite3: 'commonjs sqlite3',
     tripcode: 'commonjs tripcode',
   },
-  plugins: [new webpack.ProgressPlugin()],
+  plugins: [],
 };
