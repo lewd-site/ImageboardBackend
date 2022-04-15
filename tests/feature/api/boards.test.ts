@@ -17,7 +17,7 @@ beforeEach(() => {
   registerServices(container);
   container.registerFactory(CONNECTION_FACTORY, { create: async () => new SqliteConnectionFactory(true) });
 
-  app = createApp(container);
+  app = createApp(container, false);
 });
 
 test('create board', async () => {

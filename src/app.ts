@@ -55,6 +55,17 @@ function registerScopedServices(container: Container) {
         const connectionFactory = await container.resolve<SqliteConnectionFactory>(CONNECTION_FACTORY);
         return connectionFactory.create();
       },
+      dispose(connection: sqlite3.Database) {
+        return new Promise((resolve, reject) => {
+          connection.close((err) => {
+            if (typeof err !== 'undefined' && err !== null) {
+              return reject(err);
+            }
+
+            resolve();
+          });
+        });
+      },
     });
 
     container.registerFactory(REPOSITORY_FACTORY, {
@@ -172,14 +183,20 @@ function registerScopedServices(container: Container) {
   });
 }
 
-export function createApp(container: Container) {
+export function createApp(container: Container, useRequestScopedContainer = true) {
   function useController(name: string, method: string) {
     return async (ctx: Context) => {
-      const requestContainer = new Container(container);
+      const requestContainer = useRequestScopedContainer ? new Container(container) : container;
       registerScopedServices(requestContainer);
 
-      const controller = (await requestContainer.resolve(name)) as any;
-      return controller[method](ctx);
+      try {
+        const controller = (await requestContainer.resolve(name)) as any;
+        await controller[method](ctx);
+      } finally {
+        if (useRequestScopedContainer) {
+          await requestContainer.dispose();
+        }
+      }
     };
   }
 
