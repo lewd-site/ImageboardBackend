@@ -39,3 +39,5 @@ export class Thumbnailer {
     });
   }
 }
+
+export default Thumbnailer;

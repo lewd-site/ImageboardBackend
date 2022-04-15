@@ -1,29 +1,23 @@
 import Application from 'koa';
-import sqlite3 from 'sqlite3';
 import request from 'supertest';
-import { createApp } from '../../../src/app';
+import createApp from '../../../src/app';
 import config from '../../../src/config';
-import IQueue from '../../../src/models/queue';
-import DummyQueue from '../../../src/queues/dummy';
-import { setupDatabase } from '../../../src/repositories/sqlite/installer';
+import Container from '../../../src/container';
+import SqliteConnectionFactory from '../../../src/repositories/sqlite/connection-factory';
+import registerServices, { CONNECTION_FACTORY } from '../../../src/services';
 
-let db: sqlite3.Database | null = null;
-let queue: IQueue | null = null;
 let app: Application | null = null;
 
 beforeEach(() => {
-  db = new sqlite3.Database(':memory:', sqlite3.OPEN_CREATE | sqlite3.OPEN_READWRITE);
-  setupDatabase(db);
+  config.db = 'sqlite';
+  config.sqlite.path = ':memory:';
+  config.queue = 'dummy';
 
-  queue = new DummyQueue();
-  queue.connect();
+  const container = new Container();
+  registerServices(container);
+  container.registerFactory(CONNECTION_FACTORY, { create: async () => new SqliteConnectionFactory(true) });
 
-  app = createApp(db, queue);
-});
-
-afterEach(() => {
-  db?.close();
-  queue?.disconnect();
+  app = createApp(container);
 });
 
 test('create board', async () => {

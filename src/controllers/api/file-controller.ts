@@ -3,7 +3,7 @@ import Koa from 'koa';
 import { NotFoundError } from '../../errors';
 import { getMimeTypeByExtension } from '../../file-types';
 import File from '../../models/file';
-import { FileManager } from '../../models/file-manager';
+import FileManager from '../../models/file-manager';
 import IFileRepository from '../../models/file-repository';
 
 const DEFAULT_MIMETYPE = 'application/octet-stream';

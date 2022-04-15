@@ -1,7 +1,7 @@
 import sqlite3 from 'sqlite3';
 import File from '../../../../src/models/file';
 import SqliteFileRepository from '../../../../src/repositories/sqlite/file-repository';
-import { setupDatabase } from '../../../../src/repositories/sqlite/installer';
+import setupDatabase from '../../../../src/repositories/sqlite/setup-database';
 import SqlitePostAttributesRepository from '../../../../src/repositories/sqlite/post-attributes-repository';
 
 let db: sqlite3.Database | null = null;

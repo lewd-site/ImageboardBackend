@@ -3,7 +3,7 @@ import { unlink } from 'fs/promises';
 import Koa from 'koa';
 import { NotFoundError } from '../../errors';
 import IBoardRepository from '../../models/board-repository';
-import { FileManager } from '../../models/file-manager';
+import FileManager from '../../models/file-manager';
 import IFileRepository from '../../models/file-repository';
 import { IParser, ITokenizer } from '../../models/markup';
 import IPostRepository from '../../models/post-repository';

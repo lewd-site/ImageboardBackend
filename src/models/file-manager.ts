@@ -1,6 +1,6 @@
 import ffprobe from 'ffprobe';
 import { existsSync } from 'fs';
-import { mkdir, rename } from 'fs/promises';
+import { mkdir } from 'fs/promises';
 import md5 from 'md5-file';
 import mv from 'mv';
 import path from 'path';
@@ -98,7 +98,7 @@ export class FileManager {
     const uploadPath = path.resolve(UPLOAD_DIR, `${file.hash}.${file.extension}`);
     return new Promise((resolve, reject) => {
       mv(file.path, uploadPath, { mkdirp: true }, (err) => {
-        if (err !== null) {
+        if (typeof err !== 'undefined' && err !== null) {
           reject(err);
         }
 
@@ -132,3 +132,5 @@ export class FileManager {
     return destination;
   };
 }
+
+export default FileManager;

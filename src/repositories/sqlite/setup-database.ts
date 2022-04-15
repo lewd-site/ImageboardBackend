@@ -71,3 +71,5 @@ export function setupDatabase(db: sqlite3.Database) {
     db.run(`CREATE INDEX IF NOT EXISTS posts_files_post_id_idx ON posts_files (post_id)`);
   });
 }
+
+export default setupDatabase;

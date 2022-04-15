@@ -1,4 +1,4 @@
-import Koa from 'koa';
+import Koa, { Context } from 'koa';
 import bodyParser from 'koa-bodyparser';
 import Router from 'koa-router';
 import multer from '@koa/multer';
@@ -8,119 +8,265 @@ import conditional from 'koa-conditional-get';
 import etag from 'koa-etag';
 import serve from 'koa-static';
 import sqlite3 from 'sqlite3';
+import config from './config';
+import Container from './container';
 import BoardController from './controllers/api/board-controller';
 import ThreadController from './controllers/api/thread-controller';
 import PostController from './controllers/api/post-controller';
-import Tokenizer from './markup/tokenizer';
-import Parser from './markup/parser';
+import FileController from './controllers/api/file-controller';
 import auth from './middleware/auth';
 import errorHandler from './middleware/error-handler';
 import rewriteThumbnailUrls from './middleware/rewrite-thumbnails-url';
+import IRepositoryFactory from './models/repository-factory';
+import IFileRepository from './models/file-repository';
+import IBoardRepository from './models/board-repository';
+import IThreadRepository from './models/thread-repository';
+import IPostRepository from './models/post-repository';
 import BoardManager from './models/board-manager';
-import { FileManager } from './models/file-manager';
-import BoardRepository from './repositories/sqlite/board-repository';
-import FileRepository from './repositories/sqlite/file-repository';
-import PostAttributesRepository from './repositories/sqlite/post-attributes-repository';
-import PostRepository from './repositories/sqlite/post-repository';
-import ThreadRepository from './repositories/sqlite/thread-repository';
-import { WakabaTripcodeGenerator } from './wakaba-tripcode-generator';
-import { Thumbnailer } from './thumbnailer';
-import FileController from './controllers/api/file-controller';
+import FileManager from './models/file-manager';
 import IQueue from './models/queue';
+import Thumbnailer from './thumbnailer';
+import Parser from './markup/parser';
+import Tokenizer from './markup/tokenizer';
+import WakabaTripcodeGenerator from './wakaba-tripcode-generator';
+import SqliteConnectionFactory from './repositories/sqlite/connection-factory';
+import SqliteRepositoryFactory from './repositories/sqlite/repository-factory';
+import {
+  BOARD_CONTROLLER,
+  BOARD_REPOSITORY,
+  CONNECTION,
+  CONNECTION_FACTORY,
+  FILE_CONTROLLER,
+  FILE_REPOSITORY,
+  POST_CONTROLLER,
+  POST_REPOSITORY,
+  QUEUE,
+  REPOSITORY_FACTORY,
+  THREAD_CONTROLLER,
+  THREAD_REPOSITORY,
+} from './services';
 
 const MS_IN_WEEK = 1000 * 60 * 60 * 24 * 7;
 
-export function createApp(db: sqlite3.Database, queue: IQueue) {
-  const boardRepository = new BoardRepository(db);
-  const postAttributesRepository = new PostAttributesRepository(db);
-  const threadRepository = new ThreadRepository(db, postAttributesRepository);
-  const postRepository = new PostRepository(db, postAttributesRepository);
-  const fileRepository = new FileRepository(db, postAttributesRepository);
+function registerScopedServices(container: Container) {
+  if (config.db === 'sqlite') {
+    container.registerFactory(CONNECTION, {
+      async create() {
+        const connectionFactory = await container.resolve<SqliteConnectionFactory>(CONNECTION_FACTORY);
+        return connectionFactory.create();
+      },
+    });
 
-  const thumbnailer = new Thumbnailer();
-  const boardManager = new BoardManager();
-  const fileManager = new FileManager(thumbnailer);
-  const tripcodeGenerator = new WakabaTripcodeGenerator();
-  const tokenizer = new Tokenizer();
-  const parser = new Parser();
+    container.registerFactory(REPOSITORY_FACTORY, {
+      async create() {
+        const connection = await container.resolve<sqlite3.Database>(CONNECTION);
+        return new SqliteRepositoryFactory(connection);
+      },
+    });
+  } else if (config.db === 'pgsql') {
+    // TODO
+  }
 
-  const boardController = new BoardController(boardRepository, queue, boardManager);
+  container.registerFactory(BOARD_REPOSITORY, {
+    async create() {
+      const repositoryFactory = await container.resolve<IRepositoryFactory>(REPOSITORY_FACTORY);
+      return repositoryFactory.createBoardRepository();
+    },
+  });
 
-  const threadController = new ThreadController(
-    boardRepository,
-    threadRepository,
-    fileRepository,
-    queue,
-    tripcodeGenerator,
-    tokenizer,
-    parser,
-    fileManager
-  );
+  container.registerFactory(THREAD_REPOSITORY, {
+    async create() {
+      const repositoryFactory = await container.resolve<IRepositoryFactory>(REPOSITORY_FACTORY);
+      return repositoryFactory.createThreadRepository();
+    },
+  });
 
-  const postController = new PostController(
-    boardRepository,
-    threadRepository,
-    postRepository,
-    fileRepository,
-    queue,
-    tripcodeGenerator,
-    tokenizer,
-    parser,
-    fileManager
-  );
+  container.registerFactory(POST_REPOSITORY, {
+    async create() {
+      const repositoryFactory = await container.resolve<IRepositoryFactory>(REPOSITORY_FACTORY);
+      return repositoryFactory.createPostRepository();
+    },
+  });
 
-  const fileController = new FileController(fileRepository, fileManager);
+  container.registerFactory(FILE_REPOSITORY, {
+    async create() {
+      const repositoryFactory = await container.resolve<IRepositoryFactory>(REPOSITORY_FACTORY);
+      return repositoryFactory.createFileRepository();
+    },
+  });
+
+  container.registerFactory(BOARD_CONTROLLER, {
+    async create() {
+      const boardRepository = await container.resolve<IBoardRepository>(BOARD_REPOSITORY);
+      const queue = await container.resolve<IQueue>(QUEUE);
+      const boardManager = new BoardManager();
+
+      return new BoardController(boardRepository, queue, boardManager);
+    },
+    isSingleton: false,
+  });
+
+  container.registerFactory(THREAD_CONTROLLER, {
+    async create() {
+      const boardRepository = await container.resolve<IBoardRepository>(BOARD_REPOSITORY);
+      const threadRepository = await container.resolve<IThreadRepository>(THREAD_REPOSITORY);
+      const fileRepository = await container.resolve<IFileRepository>(FILE_REPOSITORY);
+      const queue = await container.resolve<IQueue>(QUEUE);
+      const tripcodeGenerator = new WakabaTripcodeGenerator();
+      const tokenizer = new Tokenizer();
+      const parser = new Parser();
+      const thumbnailer = new Thumbnailer();
+      const fileManager = new FileManager(thumbnailer);
+
+      return new ThreadController(
+        boardRepository,
+        threadRepository,
+        fileRepository,
+        queue,
+        tripcodeGenerator,
+        tokenizer,
+        parser,
+        fileManager
+      );
+    },
+    isSingleton: false,
+  });
+
+  container.registerFactory(POST_CONTROLLER, {
+    async create() {
+      const boardRepository = await container.resolve<IBoardRepository>(BOARD_REPOSITORY);
+      const threadRepository = await container.resolve<IThreadRepository>(THREAD_REPOSITORY);
+      const postRepository = await container.resolve<IPostRepository>(POST_REPOSITORY);
+      const fileRepository = await container.resolve<IFileRepository>(FILE_REPOSITORY);
+      const queue = await container.resolve<IQueue>(QUEUE);
+      const tripcodeGenerator = new WakabaTripcodeGenerator();
+      const tokenizer = new Tokenizer();
+      const parser = new Parser();
+      const thumbnailer = new Thumbnailer();
+      const fileManager = new FileManager(thumbnailer);
+
+      return new PostController(
+        boardRepository,
+        threadRepository,
+        postRepository,
+        fileRepository,
+        queue,
+        tripcodeGenerator,
+        tokenizer,
+        parser,
+        fileManager
+      );
+    },
+    isSingleton: false,
+  });
+
+  container.registerFactory(FILE_CONTROLLER, {
+    async create() {
+      const fileRepository = await container.resolve<IFileRepository>(FILE_REPOSITORY);
+      const thumbnailer = new Thumbnailer();
+      const fileManager = new FileManager(thumbnailer);
+
+      return new FileController(fileRepository, fileManager);
+    },
+    isSingleton: false,
+  });
+}
+
+export function createApp(container: Container) {
+  function useController(name: string, method: string) {
+    return async (ctx: Context) => {
+      const requestContainer = new Container(container);
+      registerScopedServices(requestContainer);
+
+      const controller = (await requestContainer.resolve(name)) as any;
+      return controller[method](ctx);
+    };
+  }
 
   const router = new Router();
   const upload = multer({ dest: 'tmp/' });
 
-  router.get('/api/v1/boards/:slug/threads/:threadId/posts', upload.fields([]), postController.index);
+  router.get(
+    '/api/v1/boards/:slug/threads/:threadId/posts',
+    upload.fields([]),
+    useController(POST_CONTROLLER, 'index')
+  );
+
   router.post(
     '/api/v1/boards/:slug/threads/:threadId/posts',
     upload.fields([{ name: 'files', maxCount: 5 }]),
-    postController.create
+    useController(POST_CONTROLLER, 'create')
   );
 
-  router.get('/api/v1/boards/:slug/threads/:threadId/posts/:id', upload.fields([]), postController.show);
-  router.delete('/api/v1/boards/:slug/threads/:threadId/posts/:id', auth(), postController.delete);
+  router.get(
+    '/api/v1/boards/:slug/threads/:threadId/posts/:id',
+    upload.fields([]),
+    useController(POST_CONTROLLER, 'show')
+  );
 
-  router.get('/api/v1/boards/:slug/threads', upload.fields([]), threadController.index);
-  router.post('/api/v1/boards/:slug/threads', upload.fields([{ name: 'files', maxCount: 5 }]), threadController.create);
-  router.get('/api/v1/boards/:slug/threads/:threadId', upload.fields([]), threadController.show);
-  router.delete('/api/v1/boards/:slug/threads/:threadId', auth(), threadController.delete);
+  router.delete('/api/v1/boards/:slug/threads/:threadId/posts/:id', auth(), useController(POST_CONTROLLER, 'delete'));
 
-  router.get('/api/v1/boards/:slug/posts', upload.fields([]), postController.index);
-  router.post('/api/v1/boards/:slug/posts', upload.fields([{ name: 'files', maxCount: 5 }]), postController.create);
-  router.get('/api/v1/boards/:slug/posts/:id', upload.fields([]), postController.show);
-  router.delete('/api/v1/boards/:slug/posts/:id', auth(), postController.delete);
+  router.get('/api/v1/boards/:slug/threads', upload.fields([]), useController(THREAD_CONTROLLER, 'index'));
 
-  router.get('/api/v1/boards', upload.fields([]), boardController.index);
-  router.post('/api/v1/boards', upload.fields([]), boardController.create);
-  router.get('/api/v1/boards/:slug', upload.fields([]), boardController.show);
-  router.put('/api/v1/boards/:slug', auth(), boardController.update);
-  router.delete('/api/v1/boards/:slug', auth(), boardController.delete);
+  router.post(
+    '/api/v1/boards/:slug/threads',
+    upload.fields([{ name: 'files', maxCount: 5 }]),
+    useController(THREAD_CONTROLLER, 'create')
+  );
 
-  router.get('/api/v1/threads/:threadId/posts', upload.fields([]), postController.index);
+  router.get('/api/v1/boards/:slug/threads/:threadId', upload.fields([]), useController(THREAD_CONTROLLER, 'show'));
+  router.delete('/api/v1/boards/:slug/threads/:threadId', auth(), useController(THREAD_CONTROLLER, 'delete'));
+
+  router.get('/api/v1/boards/:slug/posts', upload.fields([]), useController(POST_CONTROLLER, 'index'));
+
+  router.post(
+    '/api/v1/boards/:slug/posts',
+    upload.fields([{ name: 'files', maxCount: 5 }]),
+    useController(POST_CONTROLLER, 'create')
+  );
+
+  router.get('/api/v1/boards/:slug/posts/:id', upload.fields([]), useController(POST_CONTROLLER, 'show'));
+  router.delete('/api/v1/boards/:slug/posts/:id', auth(), useController(POST_CONTROLLER, 'delete'));
+
+  router.get('/api/v1/boards', upload.fields([]), useController(BOARD_CONTROLLER, 'index'));
+  router.post('/api/v1/boards', upload.fields([]), useController(BOARD_CONTROLLER, 'create'));
+  router.get('/api/v1/boards/:slug', upload.fields([]), useController(BOARD_CONTROLLER, 'show'));
+  router.put('/api/v1/boards/:slug', auth(), useController(BOARD_CONTROLLER, 'update'));
+  router.delete('/api/v1/boards/:slug', auth(), useController(BOARD_CONTROLLER, 'delete'));
+
+  router.get('/api/v1/threads/:threadId/posts', upload.fields([]), useController(POST_CONTROLLER, 'index'));
+
   router.post(
     '/api/v1/threads/:threadId/posts',
     upload.fields([{ name: 'files', maxCount: 5 }]),
-    postController.create
+    useController(POST_CONTROLLER, 'create')
   );
 
-  router.get('/api/v1/threads/:threadId/posts/:id', upload.fields([]), postController.show);
-  router.delete('/api/v1/threads/:threadId/posts/:id', auth(), postController.delete);
+  router.get('/api/v1/threads/:threadId/posts/:id', upload.fields([]), useController(POST_CONTROLLER, 'show'));
+  router.delete('/api/v1/threads/:threadId/posts/:id', auth(), useController(POST_CONTROLLER, 'delete'));
 
-  router.get('/api/v1/threads', upload.fields([]), threadController.index);
-  router.post('/api/v1/threads', upload.fields([{ name: 'files', maxCount: 5 }]), threadController.create);
-  router.get('/api/v1/threads/:threadId', upload.fields([]), threadController.show);
-  router.delete('/api/v1/threads/:threadId', auth(), threadController.delete);
+  router.get('/api/v1/threads', upload.fields([]), useController(THREAD_CONTROLLER, 'index'));
 
-  router.get('/api/v1/posts', upload.fields([]), postController.index);
-  router.post('/api/v1/posts', upload.fields([{ name: 'files', maxCount: 5 }]), postController.create);
-  router.get('/api/v1/posts/:id', upload.fields([]), postController.show);
-  router.delete('/api/v1/posts/:id', auth(), postController.delete);
+  router.post(
+    '/api/v1/threads',
+    upload.fields([{ name: 'files', maxCount: 5 }]),
+    useController(THREAD_CONTROLLER, 'create')
+  );
 
-  router.get('/api/v1/thumbnails/:hash', upload.fields([]), fileController.createThumbnail);
+  router.get('/api/v1/threads/:threadId', upload.fields([]), useController(THREAD_CONTROLLER, 'show'));
+  router.delete('/api/v1/threads/:threadId', auth(), useController(THREAD_CONTROLLER, 'delete'));
+
+  router.get('/api/v1/posts', upload.fields([]), useController(POST_CONTROLLER, 'index'));
+  router.post(
+    '/api/v1/posts',
+    upload.fields([{ name: 'files', maxCount: 5 }]),
+    useController(POST_CONTROLLER, 'create')
+  );
+
+  router.get('/api/v1/posts/:id', upload.fields([]), useController(POST_CONTROLLER, 'show'));
+  router.delete('/api/v1/posts/:id', auth(), useController(POST_CONTROLLER, 'delete'));
+
+  router.get('/api/v1/thumbnails/:hash', upload.fields([]), useController(FILE_CONTROLLER, 'createThumbnail'));
 
   const app = new Koa();
   app.use(helmet.contentSecurityPolicy());
@@ -140,3 +286,5 @@ export function createApp(db: sqlite3.Database, queue: IQueue) {
 
   return app;
 }
+
+export default createApp;

@@ -3,7 +3,7 @@ import Board from '../../../../src/models/board';
 import Thread from '../../../../src/models/thread';
 import IThreadRepository from '../../../../src/models/thread-repository';
 import SqliteBoardRepository from '../../../../src/repositories/sqlite/board-repository';
-import { setupDatabase } from '../../../../src/repositories/sqlite/installer';
+import setupDatabase from '../../../../src/repositories/sqlite/setup-database';
 import SqlitePostAttributesRepository from '../../../../src/repositories/sqlite/post-attributes-repository';
 import SqliteThreadRepository from '../../../../src/repositories/sqlite/thread-repository';
 import { delay } from '../../../../src/utils';
