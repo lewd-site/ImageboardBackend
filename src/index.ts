@@ -131,7 +131,7 @@ async function exportPosts(
   const threadsData = threads.map(getThreadData);
   for (const threadData of threadsData) {
     const posts = (await postRepository.browseForThread(threadData.id)).filter((post) => post.id !== threadData.id);
-    await fileRepository.loadForPosts(threads);
+    await fileRepository.loadForPosts(posts);
 
     threadData.posts.push(...posts.map(getPostData));
   }
