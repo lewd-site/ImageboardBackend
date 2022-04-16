@@ -162,7 +162,7 @@ async function importPosts(
       threadData.message_parsed,
       threadData.ip,
       new Date(threadData.created_at),
-      threadData.bumped_at !== null ? new Date() : undefined
+      threadData.bumped_at !== null ? new Date(threadData.bumped_at) : undefined
     );
 
     for (const fileData of threadData.files) {
