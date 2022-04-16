@@ -1,11 +1,12 @@
 import { spawn } from 'child_process';
-import { existsSync } from 'fs';
 import config from './config';
+import { NotFoundError } from './errors';
+import { fileExists } from './utils';
 
 export class Thumbnailer {
-  public createThumbnail(source: string, destination: string, size: number): Promise<void> {
-    if (!existsSync(source)) {
-      throw new Error(`File "${source}" not found`);
+  public async createThumbnail(source: string, destination: string, size: number): Promise<void> {
+    if (!(await fileExists(source))) {
+      throw new NotFoundError('hash');
     }
 
     const args = [
@@ -27,15 +28,14 @@ export class Thumbnailer {
     return new Promise((resolve, reject) => {
       let output = '';
       ffmpeg.stderr.on('data', (data) => (output += data.toString()));
-      ffmpeg.stderr.on('error', reject);
 
       ffmpeg.on('exit', (code) => {
         if (code !== 0) {
-          reject(new Error(`ffmpeg exited with code: ${output}, stderr: ${output}`));
+          return reject(new Error(`ffmpeg exited with code: ${code}, stderr: ${output}`));
         }
-      });
 
-      ffmpeg.on('close', resolve);
+        resolve();
+      });
     });
   }
 }

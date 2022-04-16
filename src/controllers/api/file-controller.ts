@@ -8,6 +8,8 @@ import IFileRepository from '../../models/file-repository';
 
 const DEFAULT_MIMETYPE = 'application/octet-stream';
 
+const thumbnails: { [key: string]: Promise<string> } = {};
+
 export class FileController {
   public constructor(protected readonly fileRepository: IFileRepository, protected readonly fileManager: FileManager) {}
 
@@ -28,9 +30,21 @@ export class FileController {
       throw new NotFoundError('hash');
     }
 
-    const path = await this.fileManager.createThumbnail(file, extension);
-    ctx.set('Content-Type', getMimeTypeByExtension(extension) || DEFAULT_MIMETYPE);
-    ctx.body = createReadStream(path);
+    const key = `${file.hash}_${extension}`;
+    if (typeof thumbnails[key] !== 'undefined') {
+      const path = await thumbnails[key];
+      ctx.set('Content-Type', getMimeTypeByExtension(extension) || DEFAULT_MIMETYPE);
+      ctx.body = createReadStream(path);
+      return;
+    }
+
+    try {
+      const path = await (thumbnails[key] = this.fileManager.createThumbnail(file, extension));
+      ctx.set('Content-Type', getMimeTypeByExtension(extension) || DEFAULT_MIMETYPE);
+      ctx.body = createReadStream(path);
+    } finally {
+      delete thumbnails[key];
+    }
   };
 }
 

@@ -1,18 +1,18 @@
 import ffprobe from 'ffprobe';
-import { existsSync } from 'fs';
-import { mkdir } from 'fs/promises';
+import { rename } from 'fs/promises';
 import md5 from 'md5-file';
-import mv from 'mv';
 import path from 'path';
 import config from '../config';
 import { ValidationError } from '../errors';
 import { detectFileType } from '../file-types';
 import { Thumbnailer } from '../thumbnailer';
+import { fileExists } from '../utils';
 import File from './file';
 import { FileDimensions, FileInfo, UploadedFile } from './types';
 
 const DEFAULT_MIME_TYPE = 'application/octet-stream';
 const UPLOAD_DIR = 'public/original';
+const TEMPORARY_DIR = 'tmp';
 const THUMBNAIL_DIR = 'public/thumbnails';
 const THUMBNAIL_SIZE = 250;
 
@@ -92,34 +92,21 @@ export class FileManager {
   }
 
   public moveFiles = async (files: FileInfo[]): Promise<void> => {
-    await Promise.all(files.map(this.moveFile));
-  };
-
-  public moveFile = (file: FileInfo): Promise<void> => {
-    const uploadPath = path.resolve(UPLOAD_DIR, `${file.hash}.${file.extension}`);
-    return new Promise((resolve, reject) => {
-      mv(file.path, uploadPath, { mkdirp: true }, (err) => {
-        if (typeof err !== 'undefined' && err !== null) {
-          reject(err);
-        }
-
-        resolve();
-      });
-    });
+    await Promise.all(
+      files.map(async (file) => {
+        const uploadPath = path.resolve(UPLOAD_DIR, `${file.hash}.${file.extension}`);
+        await rename(file.path, uploadPath);
+      })
+    );
   };
 
   public createThumbnail = async (file: File, extension: string): Promise<string> => {
-    let source = path.resolve(UPLOAD_DIR, `${file.hash}.${file.extension}`);
     const destination = path.resolve(THUMBNAIL_DIR, `${file.hash}.${extension}`);
-
-    if (!existsSync(THUMBNAIL_DIR)) {
-      await mkdir(THUMBNAIL_DIR, { recursive: true });
-    }
-
-    if (existsSync(destination)) {
+    if (await fileExists(destination)) {
       return destination;
     }
 
+    let source = path.resolve(UPLOAD_DIR, `${file.hash}.${file.extension}`);
     if (file.width === null && file.height === null) {
       if (file.type.startsWith('audio/')) {
         source = path.resolve(__dirname, '..', 'static', 'icons8-musical-notes-96.png');
@@ -128,7 +115,9 @@ export class FileManager {
       }
     }
 
-    await this.thumbnailer.createThumbnail(source, destination, THUMBNAIL_SIZE);
+    const temporaryDestination = path.resolve(__dirname, TEMPORARY_DIR, `thumb-${file.hash}.${extension}`);
+    await this.thumbnailer.createThumbnail(source, temporaryDestination, THUMBNAIL_SIZE);
+    await rename(temporaryDestination, destination);
 
     return destination;
   };

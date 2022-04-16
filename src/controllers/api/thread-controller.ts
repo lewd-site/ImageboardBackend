@@ -1,4 +1,3 @@
-import { existsSync } from 'fs';
 import { unlink } from 'fs/promises';
 import Koa from 'koa';
 import { NotFoundError } from '../../errors';
@@ -10,6 +9,7 @@ import IThreadRepository from '../../models/thread-repository';
 import ITripcodeGenerator from '../../models/tripcode-generator';
 import { convertMulterFileToUploadedFile } from '../../models/types';
 import IQueue from '../../models/queue';
+import { fileExists } from '../../utils';
 
 export class ThreadController {
   public constructor(
@@ -116,8 +116,8 @@ export class ThreadController {
       ctx.body = { item: thread.getData() };
     } finally {
       await Promise.all(
-        uploadedFiles.map((file) => {
-          if (existsSync(file.path)) {
+        uploadedFiles.map(async (file) => {
+          if (await fileExists(file.path)) {
             return unlink(file.path);
           }
         })
