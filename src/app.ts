@@ -7,6 +7,7 @@ import cors from '@koa/cors';
 import conditional from 'koa-conditional-get';
 import etag from 'koa-etag';
 import serve from 'koa-static';
+import { ClientBase, PoolClient } from 'pg';
 import sqlite3 from 'sqlite3';
 import config from './config';
 import Container from './container';
@@ -29,6 +30,8 @@ import Thumbnailer from './thumbnailer';
 import Parser from './markup/parser';
 import Tokenizer from './markup/tokenizer';
 import WakabaTripcodeGenerator from './wakaba-tripcode-generator';
+import PgsqlConnectionFactory from './repositories/pgsql/connection-factory';
+import PgsqlRepositoryFactory from './repositories/pgsql/repository-factory';
 import SqliteConnectionFactory from './repositories/sqlite/connection-factory';
 import SqliteRepositoryFactory from './repositories/sqlite/repository-factory';
 import {
@@ -75,7 +78,22 @@ function registerScopedServices(container: Container) {
       },
     });
   } else if (config.db === 'pgsql') {
-    // TODO
+    container.registerFactory(CONNECTION, {
+      async create() {
+        const connectionFactory = await container.resolve<PgsqlConnectionFactory>(CONNECTION_FACTORY);
+        return connectionFactory.create();
+      },
+      async dispose(connection: PoolClient) {
+        connection.release();
+      },
+    });
+
+    container.registerFactory(REPOSITORY_FACTORY, {
+      async create() {
+        const connection = await container.resolve<ClientBase>(CONNECTION);
+        return new PgsqlRepositoryFactory(connection);
+      },
+    });
   }
 
   container.registerFactory(BOARD_REPOSITORY, {

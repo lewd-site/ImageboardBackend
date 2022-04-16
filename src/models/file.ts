@@ -12,6 +12,7 @@ export interface FileDto {
 }
 
 export class File {
+  public static readonly MAX_NAME_LENGTH = 100;
   public static readonly MAX_SIZE = 100 * 1024 * 1024;
   public static readonly MAX_WIDTH = 8 * 1024;
   public static readonly MAX_HEIGHT = 8 * 1024;

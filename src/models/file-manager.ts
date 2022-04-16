@@ -54,6 +54,7 @@ export class FileManager {
 
     return {
       ...file,
+      originalName: file.originalName.substring(0, File.MAX_NAME_LENGTH),
       hash: await md5(file.path),
       mimeType,
       extension,

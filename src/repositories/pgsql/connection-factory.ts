@@ -1,6 +1,7 @@
 import { Pool, PoolClient } from 'pg';
 import config from '../../config';
 import { IAsyncFactory } from '../../models/factory';
+import { setupDatabase } from './setup-database';
 
 export class PgsqlConnectionFactory implements IAsyncFactory<PoolClient> {
   protected readonly pool: Pool;
@@ -13,6 +14,13 @@ export class PgsqlConnectionFactory implements IAsyncFactory<PoolClient> {
       user: config.pgsql.user,
       password: config.pgsql.password,
     });
+
+    this.setupDatabase();
+  }
+
+  private async setupDatabase() {
+    const client = await this.create();
+    await setupDatabase(client);
   }
 
   public create() {
