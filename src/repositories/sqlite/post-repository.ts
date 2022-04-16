@@ -29,7 +29,10 @@ export class SqlitePostRepository extends SqliteRepository implements IPostRepos
   protected static readonly PER_PAGE = 100;
   protected static readonly MS_IN_SECOND = 1000;
 
-  public constructor(db: sqlite3.Database, protected readonly postAttributesRepository: SqlitePostAttributesRepository) {
+  public constructor(
+    db: sqlite3.Database,
+    protected readonly postAttributesRepository: SqlitePostAttributesRepository
+  ) {
     super(db);
   }
 
@@ -101,12 +104,14 @@ export class SqlitePostRepository extends SqliteRepository implements IPostRepos
     tripcode: string,
     message: string,
     parsedMessage: Node[],
-    ip: string
+    ip: string,
+    createdAt?: Date
   ): Promise<Post | null> {
+    const createdAtValue = typeof createdAt !== 'undefined' ? '?' : "strftime('%s','now')";
     const sql = `INSERT INTO posts (board_id, parent_id, name_id, tripcode_id, message, message_parsed, ip_id, created_at, bumped_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%s','now'), NULL)`;
+      VALUES (?, ?, ?, ?, ?, ?, ?, ${createdAtValue}, NULL)`;
 
-    const result = await this.runAsync(sql, [
+    const params = [
       boardId,
       parentId,
       name.length ? await this.postAttributesRepository.readOrAddName(name) : null,
@@ -114,8 +119,13 @@ export class SqlitePostRepository extends SqliteRepository implements IPostRepos
       message,
       JSON.stringify(parsedMessage),
       await this.postAttributesRepository.readOrAddIp(ip),
-    ]);
+    ];
 
+    if (typeof createdAt !== 'undefined') {
+      params.push(createdAt.getTime() / SqlitePostRepository.MS_IN_SECOND);
+    }
+
+    const result = await this.runAsync(sql, params);
     return this.read(result.lastID);
   }
 

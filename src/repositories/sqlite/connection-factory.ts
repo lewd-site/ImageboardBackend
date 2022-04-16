@@ -10,9 +10,9 @@ export class SqliteConnectionFactory implements IFactory<sqlite3.Database> {
     this.setupDatabase();
   }
 
-  private setupDatabase() {
+  private async setupDatabase() {
     const connection = this.create();
-    setupDatabase(connection);
+    await setupDatabase(connection);
   }
 
   public create() {

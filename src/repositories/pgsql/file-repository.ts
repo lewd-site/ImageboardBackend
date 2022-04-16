@@ -22,6 +22,8 @@ interface FileDto {
 }
 
 export class PgsqlFileRepository extends PgsqlRepository implements IFileRepository {
+  protected static readonly MS_IN_SECOND = 1000;
+
   public constructor(client: ClientBase, protected readonly postAttributesRepository: PgsqlPostAttributesRepository) {
     super(client);
   }
@@ -93,18 +95,20 @@ export class PgsqlFileRepository extends PgsqlRepository implements IFileReposit
     width: number | null,
     height: number | null,
     length: number | null,
-    ip: string
+    ip: string,
+    createdAt?: Date
   ): Promise<File | null> {
     const file = await this.readByHash(hash);
     if (file !== null) {
       return file;
     }
 
+    const createdAtValue = typeof createdAt !== 'undefined' ? '$10' : 'now()';
     const sql = `INSERT INTO files (hash, name, extension, type, size, width, height, length, ip_id, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, ${createdAtValue})
       RETURNING id`;
 
-    const result = await this.client.query(sql, [
+    const params = [
       hash,
       name,
       extension,
@@ -114,8 +118,13 @@ export class PgsqlFileRepository extends PgsqlRepository implements IFileReposit
       height,
       length,
       await this.postAttributesRepository.readOrAddIp(ip),
-    ]);
+    ];
 
+    if (typeof createdAt !== 'undefined') {
+      params.push(createdAt.toISOString());
+    }
+
+    const result = await this.client.query(sql, params);
     return this.read(+result.rows[0].id);
   }
 

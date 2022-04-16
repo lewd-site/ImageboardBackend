@@ -27,6 +27,7 @@ interface PostDto {
 
 export class PgsqlPostRepository extends PgsqlRepository implements IPostRepository {
   protected static readonly PER_PAGE = 100;
+  protected static readonly MS_IN_SECOND = 1000;
 
   public constructor(client: ClientBase, protected readonly postAttributesRepository: PgsqlPostAttributesRepository) {
     super(client);
@@ -100,13 +101,15 @@ export class PgsqlPostRepository extends PgsqlRepository implements IPostReposit
     tripcode: string,
     message: string,
     parsedMessage: Node[],
-    ip: string
+    ip: string,
+    createdAt?: Date
   ): Promise<Post | null> {
+    const createdAtValue = typeof createdAt !== 'undefined' ? '$8' : 'now()';
     const sql = `INSERT INTO posts (board_id, parent_id, name_id, tripcode_id, message, message_parsed, ip_id, created_at, bumped_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, now(), NULL)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, ${createdAtValue}, NULL)
       RETURNING id`;
 
-    const result = await this.client.query(sql, [
+    const params = [
       boardId,
       parentId,
       name.length ? await this.postAttributesRepository.readOrAddName(name) : null,
@@ -114,8 +117,13 @@ export class PgsqlPostRepository extends PgsqlRepository implements IPostReposit
       message,
       JSON.stringify(parsedMessage),
       await this.postAttributesRepository.readOrAddIp(ip),
-    ]);
+    ];
 
+    if (typeof createdAt !== 'undefined') {
+      params.push(createdAt.toISOString());
+    }
+
+    const result = await this.client.query(sql, params);
     return this.read(+result.rows[0].id);
   }
 

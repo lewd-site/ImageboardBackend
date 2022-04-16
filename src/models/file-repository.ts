@@ -17,7 +17,8 @@ export interface IFileRepository extends IRepository {
     width: number | null,
     height: number | null,
     length: number | null,
-    ip: string
+    ip: string,
+    createdAt?: Date
   ): Promise<File | null>;
   addPostFileLink(postId: number, fileId: number): Promise<void>;
   delete(id: number): Promise<File | null>;

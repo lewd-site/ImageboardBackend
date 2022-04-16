@@ -15,7 +15,9 @@ export interface IThreadRepository extends IRepository {
     tripcode: string,
     message: string,
     parsedMessage: Node[],
-    ip: string
+    ip: string,
+    createdAt?: Date,
+    bumpedAt?: Date
   ): Promise<Thread | null>;
   delete(id: number): Promise<Thread | null>;
 }

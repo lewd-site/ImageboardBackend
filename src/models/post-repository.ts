@@ -13,7 +13,8 @@ export interface IPostRepository extends IRepository {
     tripcode: string,
     message: string,
     parsedMessage: Node[],
-    ip: string
+    ip: string,
+    createdAt?: Date
   ): Promise<Post | null>;
   delete(id: number): Promise<Post | null>;
 }

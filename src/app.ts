@@ -51,7 +51,7 @@ import {
 
 const MS_IN_WEEK = 1000 * 60 * 60 * 24 * 7;
 
-function registerScopedServices(container: Container) {
+export function registerScopedServices(container: Container) {
   if (config.db === 'sqlite') {
     container.registerFactory(CONNECTION, {
       async create() {

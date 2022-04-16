@@ -29,6 +29,7 @@ interface ThreadDto {
 
 export class PgsqlThreadRepository extends PgsqlRepository implements IThreadRepository {
   protected static readonly PER_PAGE = 10;
+  protected static readonly MS_IN_SECOND = 1000;
 
   public constructor(client: ClientBase, protected readonly postAttributesRepository: PgsqlPostAttributesRepository) {
     super(client);
@@ -137,13 +138,17 @@ export class PgsqlThreadRepository extends PgsqlRepository implements IThreadRep
     tripcode: string,
     message: string,
     parsedMessage: Node[],
-    ip: string
+    ip: string,
+    createdAt?: Date,
+    bumpedAt?: Date
   ): Promise<Thread | null> {
+    const createdAtValue = typeof createdAt !== 'undefined' ? '$8' : 'now()';
+    const bumpedAtValue = typeof bumpedAt !== 'undefined' ? '$9' : 'now()';
     const sql = `INSERT INTO posts(board_id, parent_id, subject, name_id, tripcode_id, message, message_parsed, ip_id, post_count, created_at, bumped_at)
-      VALUES ($1, NULL, $2, $3, $4, $5, $6, $7, 1, now(), now())
+      VALUES ($1, NULL, $2, $3, $4, $5, $6, $7, 1, ${createdAtValue}, ${bumpedAtValue})
       RETURNING id`;
 
-    const result = await this.client.query(sql, [
+    const params = [
       boardId,
       subject.length ? subject : null,
       name.length ? await this.postAttributesRepository.readOrAddName(name) : null,
@@ -151,8 +156,17 @@ export class PgsqlThreadRepository extends PgsqlRepository implements IThreadRep
       message,
       JSON.stringify(parsedMessage),
       await this.postAttributesRepository.readOrAddIp(ip),
-    ]);
+    ];
 
+    if (typeof createdAt !== 'undefined') {
+      params.push(createdAt.toISOString());
+    }
+
+    if (typeof bumpedAt !== 'undefined') {
+      params.push(bumpedAt.toISOString());
+    }
+
+    const result = await this.client.query(sql, params);
     return this.read(+result.rows[0].id);
   }
 

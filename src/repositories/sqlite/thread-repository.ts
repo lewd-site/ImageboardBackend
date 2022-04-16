@@ -31,7 +31,10 @@ export class SqliteThreadRepository extends SqliteRepository implements IThreadR
   protected static readonly PER_PAGE = 10;
   protected static readonly MS_IN_SECOND = 1000;
 
-  public constructor(db: sqlite3.Database, protected readonly postAttributesRepository: SqlitePostAttributesRepository) {
+  public constructor(
+    db: sqlite3.Database,
+    protected readonly postAttributesRepository: SqlitePostAttributesRepository
+  ) {
     super(db);
   }
 
@@ -138,12 +141,16 @@ export class SqliteThreadRepository extends SqliteRepository implements IThreadR
     tripcode: string,
     message: string,
     parsedMessage: Node[],
-    ip: string
+    ip: string,
+    createdAt?: Date,
+    bumpedAt?: Date
   ): Promise<Thread | null> {
+    const createdAtValue = typeof createdAt !== 'undefined' ? '?' : "strftime('%s','now')";
+    const bumpedAtValue = typeof bumpedAt !== 'undefined' ? '?' : "strftime('%s','now')";
     const sql = `INSERT INTO posts(board_id, parent_id, subject, name_id, tripcode_id, message, message_parsed, ip_id, post_count, created_at, bumped_at)
-      VALUES (?, NULL, ?, ?, ?, ?, ?, ?, 1, strftime('%s','now'), strftime('%s','now'))`;
+      VALUES (?, NULL, ?, ?, ?, ?, ?, ?, 1, ${createdAtValue}, ${bumpedAtValue})`;
 
-    const result = await this.runAsync(sql, [
+    const params = [
       boardId,
       subject.length ? subject : null,
       name.length ? await this.postAttributesRepository.readOrAddName(name) : null,
@@ -151,8 +158,17 @@ export class SqliteThreadRepository extends SqliteRepository implements IThreadR
       message,
       JSON.stringify(parsedMessage),
       await this.postAttributesRepository.readOrAddIp(ip),
-    ]);
+    ];
 
+    if (typeof createdAt !== 'undefined') {
+      params.push(createdAt.getTime() / SqliteThreadRepository.MS_IN_SECOND);
+    }
+
+    if (typeof bumpedAt !== 'undefined') {
+      params.push(bumpedAt.getTime() / SqliteThreadRepository.MS_IN_SECOND);
+    }
+
+    const result = await this.runAsync(sql, params);
     return this.read(result.lastID);
   }
 

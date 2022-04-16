@@ -24,7 +24,10 @@ interface FileDto {
 export class SqliteFileRepository extends SqliteRepository implements IFileRepository {
   protected static readonly MS_IN_SECOND = 1000;
 
-  public constructor(db: sqlite3.Database, protected readonly postAttributesRepository: SqlitePostAttributesRepository) {
+  public constructor(
+    db: sqlite3.Database,
+    protected readonly postAttributesRepository: SqlitePostAttributesRepository
+  ) {
     super(db);
   }
 
@@ -95,17 +98,19 @@ export class SqliteFileRepository extends SqliteRepository implements IFileRepos
     width: number | null,
     height: number | null,
     length: number | null,
-    ip: string
+    ip: string,
+    createdAt?: Date
   ): Promise<File | null> {
     const file = await this.readByHash(hash);
     if (file !== null) {
       return file;
     }
 
+    const createdAtValue = typeof createdAt !== 'undefined' ? '?' : "strftime('%s','now')";
     const sql = `INSERT INTO files (hash, name, extension, type, size, width, height, length, ip_id, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now'))`;
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ${createdAtValue})`;
 
-    const result = await this.runAsync(sql, [
+    const params = [
       hash,
       name,
       extension,
@@ -115,8 +120,13 @@ export class SqliteFileRepository extends SqliteRepository implements IFileRepos
       height,
       length,
       await this.postAttributesRepository.readOrAddIp(ip),
-    ]);
+    ];
 
+    if (typeof createdAt !== 'undefined') {
+      params.push(createdAt.getTime() / SqliteFileRepository.MS_IN_SECOND);
+    }
+
+    const result = await this.runAsync(sql, params);
     return this.read(result.lastID);
   }
 

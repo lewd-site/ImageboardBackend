@@ -20,7 +20,7 @@ export class PgsqlPostAttributesRepository extends PgsqlRepository {
   }
 
   protected async addName(name: string): Promise<number> {
-    const result = await this.client.query(`INSERT INTO tripcodes (tripcode) VALUES ($1) RETURNING id`, [name]);
+    const result = await this.client.query(`INSERT INTO names (name) VALUES ($1) RETURNING id`, [name]);
     return +result.rows[0].id;
   }
 
