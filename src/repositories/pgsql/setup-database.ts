@@ -54,7 +54,7 @@ export async function setupDatabase(client: ClientBase) {
     size integer NOT NULL,
     width integer,
     height integer,
-    length integer,
+    length real,
     ip_id integer NOT NULL REFERENCES ips (id) ON DELETE RESTRICT,
     created_at timestamp with time zone NOT NULL
   )`);

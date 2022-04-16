@@ -56,7 +56,7 @@ export async function setupDatabase(db: sqlite3.Database) {
         size INTEGER NOT NULL,
         width INTEGER,
         height INTEGER,
-        length INTEGER,
+        length REAL,
         ip_id INTEGER NOT NULL REFERENCES ips (id) ON DELETE RESTRICT,
         created_at INTEGER NOT NULL
       )`);
