@@ -139,6 +139,11 @@ async function exportPosts(
   console.log(JSON.stringify(threadsData));
 }
 
+function isThreadData(postData: PostDto | ThreadDto): postData is ThreadDto {
+  const parentId = (postData as any).parent_id;
+  return typeof parentId === 'undefined' || parentId === null || parentId === 0;
+}
+
 async function importPosts(
   boardRepository: IBoardRepository,
   threadRepository: IThreadRepository,
@@ -146,33 +151,61 @@ async function importPosts(
   fileRepository: IFileRepository,
   threadsData: ThreadDto[]
 ) {
+  const postsData: (PostDto | ThreadDto)[] = [...threadsData];
   for (const threadData of threadsData) {
-    const board = await boardRepository.readBySlug(threadData.slug);
-    if (!board) {
-      console.log(`Board '${threadData.slug}' not found`);
+    postsData.push(...threadData.posts);
+    threadData.posts.splice(0);
+  }
+
+  postsData.sort((a, b) => a.id - b.id);
+
+  const postIdMap: { [key: number]: number } = {};
+
+  for (const postData of postsData) {
+    const board = await boardRepository.readBySlug(postData.slug);
+    if (board === null) {
+      console.warn(`Board '${postData.slug}' not found`);
       continue;
     }
 
-    const thread = await threadRepository.add(
-      board.id,
-      threadData.subject || '',
-      threadData.name || '',
-      threadData.tripcode || '',
-      threadData.message,
-      threadData.message_parsed,
-      threadData.ip,
-      new Date(threadData.created_at),
-      threadData.bumped_at !== null ? new Date(threadData.bumped_at) : undefined
-    );
-
-    for (const fileData of threadData.files) {
-      await importFile(fileRepository, thread!.id, fileData);
-    }
-
-    for (const postData of threadData.posts) {
-      await importPost(postRepository, fileRepository, board.id, thread!.id, postData);
+    if (isThreadData(postData)) {
+      const thread = await importThread(threadRepository, fileRepository, board.id, postData);
+      postIdMap[postData.id] = thread.id;
+    } else {
+      const parentId = postIdMap[postData.parent_id];
+      const post = await importPost(postRepository, fileRepository, board.id, parentId, postData);
+      postIdMap[postData.id] = post.id;
     }
   }
+}
+
+async function importThread(
+  threadRepository: IThreadRepository,
+  fileRepository: IFileRepository,
+  boardId: number,
+  threadData: ThreadDto
+) {
+  const thread = await threadRepository.add(
+    boardId,
+    threadData.subject || '',
+    threadData.name || '',
+    threadData.tripcode || '',
+    threadData.message,
+    threadData.message_parsed,
+    threadData.ip,
+    new Date(threadData.created_at),
+    threadData.bumped_at !== null ? new Date(threadData.bumped_at) : undefined
+  );
+
+  if (thread === null) {
+    throw new Error(`Can't create thread '${threadData.id}'`);
+  }
+
+  for (const fileData of threadData.files) {
+    await importFile(fileRepository, thread.id, fileData);
+  }
+
+  return thread;
 }
 
 async function importPost(
@@ -193,9 +226,15 @@ async function importPost(
     new Date(postData.created_at)
   );
 
-  for (const fileData of postData.files) {
-    await importFile(fileRepository, post!.id, fileData);
+  if (post === null) {
+    throw new Error(`Can't create post '${postData.id}'`);
   }
+
+  for (const fileData of postData.files) {
+    await importFile(fileRepository, post.id, fileData);
+  }
+
+  return post;
 }
 
 async function importFile(fileRepository: IFileRepository, postId: number, fileData: FileDto) {
@@ -212,7 +251,13 @@ async function importFile(fileRepository: IFileRepository, postId: number, fileD
     new Date(fileData.created_at)
   );
 
-  await fileRepository.addPostFileLink(postId, file!.id);
+  if (file === null) {
+    throw new Error(`Can't create file '${fileData.hash}'`);
+  }
+
+  await fileRepository.addPostFileLink(postId, file.id);
+
+  return file;
 }
 
 async function main() {

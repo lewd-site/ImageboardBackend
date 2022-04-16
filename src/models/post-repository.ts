@@ -4,6 +4,7 @@ import IRepository from './repository';
 
 export interface IPostRepository extends IRepository {
   browse(): Promise<Post[]>;
+  browseForBoard(boardId: number): Promise<Post[]>;
   browseForThread(threadId: number): Promise<Post[]>;
   read(id: number): Promise<Post | null>;
   add(

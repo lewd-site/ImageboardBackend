@@ -54,6 +54,25 @@ export class SqlitePostRepository extends SqliteRepository implements IPostRepos
     return rows.map(this.convertDtoToModel);
   }
 
+  public async browseForBoard(boardId: number): Promise<Post[]> {
+    const sql = `SELECT
+        p.*,
+        b.id as board_id, b.slug as board_slug, b.title as board_title, b.created_at as board_created_at, b.post_count as board_post_count,
+        n.name,
+        t.tripcode,
+        i.ip
+      FROM posts p
+      INNER JOIN boards b ON b.id = p.board_id
+      LEFT JOIN names n ON n.id = p.name_id
+      LEFT JOIN tripcodes t ON t.id = p.tripcode_id
+      INNER JOIN ips i ON i.id = p.ip_id
+      WHERE p.board_id = ?
+      ORDER BY p.id`;
+
+    const { rows } = await this.allAsync(sql, [boardId]);
+    return rows.map(this.convertDtoToModel);
+  }
+
   public async browseForThread(threadId: number): Promise<Post[]> {
     const sql = `SELECT
         p.*,

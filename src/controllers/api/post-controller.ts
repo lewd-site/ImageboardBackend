@@ -53,6 +53,11 @@ export class PostController {
       if (board === null) {
         throw new NotFoundError('slug');
       }
+
+      const posts = await this.postRepository.browseForBoard(board.id);
+      await this.fileRepository.loadForPosts(posts);
+
+      return (ctx.body = { items: posts.map((post) => post.getData()) });
     }
 
     const posts = await this.postRepository.browse();
