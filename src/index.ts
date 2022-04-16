@@ -228,7 +228,7 @@ async function main() {
           const threadRepository = await container.resolve<IThreadRepository>(THREAD_REPOSITORY);
           const postRepository = await container.resolve<IPostRepository>(POST_REPOSITORY);
           const fileRepository = await container.resolve<IFileRepository>(FILE_REPOSITORY);
-          exportPosts(threadRepository, postRepository, fileRepository);
+          await exportPosts(threadRepository, postRepository, fileRepository);
           break;
         }
 
@@ -245,7 +245,7 @@ async function main() {
 
           const data = await readFile(process.argv[3], 'utf8');
           const threads: ThreadDto[] = JSON.parse(data);
-          importPosts(boardRepository, threadRepository, postRepository, fileRepository, threads);
+          await importPosts(boardRepository, threadRepository, postRepository, fileRepository, threads);
           break;
         }
 
