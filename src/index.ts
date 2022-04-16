@@ -57,6 +57,8 @@ interface FileDto {
   readonly ip: string;
 }
 
+type IdMap = { [key: number]: number };
+
 async function loadAllThreads(threadRepository: IThreadRepository) {
   const threads = [];
 
@@ -160,8 +162,8 @@ async function importPosts(
   postsData.sort((a, b) => a.id - b.id);
 
   const boardIds: number[] = [];
-  const threadIdMap: { [key: number]: number } = {};
-  const postIdMap: { [key: number]: number } = {};
+  const threadIdMap: IdMap = {};
+  const postIdMap: IdMap = {};
 
   for (const postData of postsData) {
     const board = await boardRepository.readBySlug(postData.slug);
@@ -171,12 +173,12 @@ async function importPosts(
     }
 
     if (isThreadData(postData)) {
-      const thread = await importThread(threadRepository, fileRepository, board.id, postData);
+      const thread = await importThread(threadRepository, fileRepository, board.id, postData, postIdMap);
       threadIdMap[postData.id] = thread.id;
       postIdMap[postData.id] = thread.id;
     } else {
       const parentId = threadIdMap[postData.parent_id];
-      const post = await importPost(postRepository, fileRepository, board.id, parentId, postData);
+      const post = await importPost(postRepository, fileRepository, board.id, parentId, postData, postIdMap);
       postIdMap[postData.id] = post.id;
     }
 
@@ -196,15 +198,16 @@ async function importThread(
   threadRepository: IThreadRepository,
   fileRepository: IFileRepository,
   boardId: number,
-  threadData: ThreadDto
+  threadData: ThreadDto,
+  postIdMap: IdMap
 ) {
   const thread = await threadRepository.add(
     boardId,
     threadData.subject || '',
     threadData.name || '',
     threadData.tripcode || '',
-    threadData.message,
-    threadData.message_parsed,
+    updateRefLinksInRawMessage(threadData.message, postIdMap),
+    updateRefLinksInParsedMessage(threadData.message_parsed, postIdMap),
     threadData.ip,
     new Date(threadData.created_at),
     threadData.bumped_at !== null ? new Date(threadData.bumped_at) : undefined
@@ -226,15 +229,16 @@ async function importPost(
   fileRepository: IFileRepository,
   boardId: number,
   parentId: number,
-  postData: PostDto
+  postData: PostDto,
+  postIdMap: IdMap
 ) {
   const post = await postRepository.add(
     boardId,
     parentId,
     postData.name || '',
     postData.tripcode || '',
-    postData.message,
-    postData.message_parsed,
+    updateRefLinksInRawMessage(postData.message, postIdMap),
+    updateRefLinksInParsedMessage(postData.message_parsed, postIdMap),
     postData.ip,
     new Date(postData.created_at)
   );
@@ -248,6 +252,34 @@ async function importPost(
   }
 
   return post;
+}
+
+function updateRefLinksInRawMessage(message: string, postIdMap: IdMap): string {
+  return message.replace(/>>(\d+)/gi, (_match, postID) => {
+    return '>>' + (typeof postIdMap[+postID] !== 'undefined' ? postIdMap[+postID] : postID);
+  });
+}
+
+function updateRefLinksInParsedMessage(nodes: Node[], postIdMap: IdMap): Node[] {
+  return nodes.map((node) => {
+    switch (node.type) {
+      case 'reflink':
+        const threadID =
+          typeof node.threadID !== 'undefined' && typeof postIdMap[node.threadID] !== 'undefined'
+            ? postIdMap[node.threadID]
+            : node.threadID;
+
+        const postID = typeof postIdMap[node.postID] !== 'undefined' ? postIdMap[node.postID] : node.postID;
+
+        return { ...node, postID, threadID };
+
+      case 'style':
+        return { ...node, children: updateRefLinksInParsedMessage(node.children, postIdMap) };
+
+      default:
+        return node;
+    }
+  });
 }
 
 async function importFile(fileRepository: IFileRepository, postId: number, fileData: FileDto) {
