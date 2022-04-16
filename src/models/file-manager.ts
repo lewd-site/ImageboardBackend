@@ -115,7 +115,7 @@ export class FileManager {
       }
     }
 
-    const temporaryDestination = path.resolve(__dirname, TEMPORARY_DIR, `thumb-${file.hash}.${extension}`);
+    const temporaryDestination = path.resolve(TEMPORARY_DIR, `thumb-${file.hash}.${extension}`);
     await this.thumbnailer.createThumbnail(source, temporaryDestination, THUMBNAIL_SIZE);
     await rename(temporaryDestination, destination);
 
