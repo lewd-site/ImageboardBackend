@@ -7,6 +7,7 @@ export interface IBoardRepository extends IRepository {
   readBySlug(slug: string): Promise<Board | null>;
   edit(id: number, slug: string, title: string): Promise<Board | null>;
   incrementPostCount(id: number): Promise<Board | null>;
+  calculatePostCount(id: number): Promise<Board | null>;
   add(slug: string, title: string): Promise<Board | null>;
   delete(id: number): Promise<Board | null>;
 }

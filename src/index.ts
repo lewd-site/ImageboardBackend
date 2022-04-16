@@ -159,6 +159,8 @@ async function importPosts(
 
   postsData.sort((a, b) => a.id - b.id);
 
+  const boardIds: number[] = [];
+  const threadIdMap: { [key: number]: number } = {};
   const postIdMap: { [key: number]: number } = {};
 
   for (const postData of postsData) {
@@ -170,12 +172,23 @@ async function importPosts(
 
     if (isThreadData(postData)) {
       const thread = await importThread(threadRepository, fileRepository, board.id, postData);
+      threadIdMap[postData.id] = thread.id;
       postIdMap[postData.id] = thread.id;
     } else {
-      const parentId = postIdMap[postData.parent_id];
+      const parentId = threadIdMap[postData.parent_id];
       const post = await importPost(postRepository, fileRepository, board.id, parentId, postData);
       postIdMap[postData.id] = post.id;
     }
+
+    boardIds.push(board.id);
+  }
+
+  for (const boardId of boardIds) {
+    await boardRepository.calculatePostCount(boardId);
+  }
+
+  for (const threadId of Object.values(threadIdMap)) {
+    await threadRepository.calculatePostCount(threadId);
   }
 }
 

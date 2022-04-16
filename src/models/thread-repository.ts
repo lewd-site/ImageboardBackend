@@ -7,6 +7,7 @@ export interface IThreadRepository extends IRepository {
   browseForBoard(boardId: number, page?: number): Promise<Thread[]>;
   read(id: number): Promise<Thread | null>;
   incrementPostCount(id: number): Promise<Thread | null>;
+  calculatePostCount(id: number): Promise<Thread | null>;
   bumpThread(id: number): Promise<Thread | null>;
   add(
     boardId: number,

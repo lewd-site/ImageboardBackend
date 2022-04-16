@@ -80,6 +80,20 @@ export class PgsqlBoardRepository extends PgsqlRepository implements IBoardRepos
     return await this.read(id);
   }
 
+  public async calculatePostCount(id: number): Promise<Board | null> {
+    const board = await this.read(id);
+    if (board === null) {
+      return null;
+    }
+
+    const sql = `UPDATE boards
+      SET post_count = (SELECT COUNT(*) FROM posts AS p WHERE p.board_id = $1)
+      WHERE id = $1`;
+
+    await this.client.query(sql, [id]);
+    return await this.read(id);
+  }
+
   public async add(slug: string, title: string): Promise<Board | null> {
     const sql = `INSERT INTO boards(slug, title, post_count, created_at)
       VALUES ($1, $2, 0, now())`;

@@ -117,6 +117,20 @@ export class PgsqlThreadRepository extends PgsqlRepository implements IThreadRep
     return await this.read(id);
   }
 
+  public async calculatePostCount(id: number): Promise<Thread | null> {
+    const thread = await this.read(id);
+    if (thread === null) {
+      return null;
+    }
+
+    const sql = `UPDATE posts
+      SET post_count = (SELECT COUNT(*) FROM posts AS p WHERE p.parent_id = $1 OR p.id = $1)
+      WHERE id = $1`;
+
+    await this.client.query(sql, [id]);
+    return await this.read(id);
+  }
+
   public async bumpThread(id: number): Promise<Thread | null> {
     const thread = await this.read(id);
     if (thread === null) {

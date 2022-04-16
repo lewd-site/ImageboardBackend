@@ -120,6 +120,20 @@ export class SqliteThreadRepository extends SqliteRepository implements IThreadR
     return await this.read(id);
   }
 
+  public async calculatePostCount(id: number): Promise<Thread | null> {
+    const thread = await this.read(id);
+    if (thread === null) {
+      return null;
+    }
+
+    const sql = `UPDATE posts
+      SET post_count = (SELECT COUNT(*) FROM posts AS p WHERE p.parent_id = ? OR p.id = ?)
+      WHERE id = ?`;
+
+    await this.runAsync(sql, [id, id, id]);
+    return await this.read(id);
+  }
+
   public async bumpThread(id: number): Promise<Thread | null> {
     const thread = await this.read(id);
     if (thread === null) {
