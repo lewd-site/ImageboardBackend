@@ -1,4 +1,5 @@
 import Koa, { Context } from 'koa';
+import logger from 'koa-logger';
 import bodyParser from 'koa-bodyparser';
 import Router from 'koa-router';
 import multer from '@koa/multer';
@@ -304,6 +305,10 @@ export function createApp(container: Container, useRequestScopedContainer = true
   router.get('/api/v1/thumbnails/:hash', upload.fields([]), useController(FILE_CONTROLLER, 'createThumbnail'));
 
   const app = new Koa();
+  if (process.env.NODE_ENV === 'development') {
+    app.use(logger());
+  }
+
   app.use(helmet.contentSecurityPolicy());
   app.use(helmet.referrerPolicy());
   app.use(helmet.noSniff());
