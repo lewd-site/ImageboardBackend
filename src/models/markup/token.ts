@@ -30,6 +30,12 @@ export type RefLinkToken = TokenBase & {
   readonly threadID?: number;
 };
 
+export type DiceToken = TokenBase & {
+  readonly type: 'dice';
+  readonly count: number;
+  readonly max: number;
+};
+
 export type WakabamarkStartToken = TokenBase & {
   readonly type: 'wm_start';
 };
@@ -55,6 +61,7 @@ export type Token =
   | QuoteToken
   | LinkToken
   | RefLinkToken
+  | DiceToken
   | WakabamarkStartToken
   | WakabamarkEndToken
   | BBCodeStartToken

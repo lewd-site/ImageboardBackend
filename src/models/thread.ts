@@ -75,7 +75,7 @@ export class Thread {
 
     const author = tripcodeGenerator.createTripcode(name);
     const tokens = tokenizer.tokenize(message);
-    const parsedMessage = parser.parse(tokens);
+    const parsedMessage = this.board.processParsedMessage(parser.parse(tokens));
 
     let post: Post | null = null;
 

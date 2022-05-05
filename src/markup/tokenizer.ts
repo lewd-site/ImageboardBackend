@@ -17,7 +17,8 @@ export class Tokenizer implements ITokenizer {
     '\\[size=[1-9]\\d?]|' + // BBCode size start tag
     '\\[\\/(?:[bius]|su[pb]|spoiler|color|size)]|' + // BBCode end tags
     '>>\\d+|^>.*?$|\\*\\*|\\*|%%|~~|\\n|' + // Reflink, quote, WakabaMark tokens, new line
-    Tokenizer._urlPattern + // Links
+    `${Tokenizer._urlPattern}|` + // Links
+    '##\\d{1,2}d\\d{1,4}##' + // Dice
     ')';
 
   protected static readonly _carriageReturnRegExp = new RegExp('\r', 'g');
@@ -85,6 +86,11 @@ export class Tokenizer implements ITokenizer {
         const url = matches[1];
 
         result.push({ type: 'link', index, text: token, url });
+      } else if ((matches = token.match(/^##(\d{1,2})d(\d{1,4})##$/i)) !== null) {
+        const count = +matches[1];
+        const max = +matches[2];
+
+        result.push({ type: 'dice', index, text: token, count, max });
       } else {
         result.push({ type: 'text', index, text: token });
       }

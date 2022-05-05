@@ -25,7 +25,7 @@ interface StyleSpan {
 }
 
 export class Parser implements IParser {
-  protected static readonly _textTokenTypes = ['text', 'newline', 'quote', 'reflink', 'link'];
+  protected static readonly _textTokenTypes = ['text', 'newline', 'quote', 'reflink', 'dice', 'link'];
 
   public parse(tokens: Token[]): Node[] {
     const styleSpans = this.getStyleSpans(tokens);
@@ -53,6 +53,10 @@ export class Parser implements IParser {
 
         case 'link':
           node = { type: 'link', text: token.text, url: token.url, icon: token.icon };
+          break;
+
+        case 'dice':
+          node = { type: 'dice', count: token.count, max: token.max };
           break;
       }
 

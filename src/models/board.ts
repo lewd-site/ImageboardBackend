@@ -2,7 +2,7 @@ import { NotFoundError, ValidationError } from '../errors';
 import IQueue from './queue';
 import IBoardRepository from './board-repository';
 import IFileRepository from './file-repository';
-import { IParser, ITokenizer } from './markup';
+import { IParser, ITokenizer, Node } from './markup';
 import Thread from './thread';
 import IThreadRepository from './thread-repository';
 import ITripcodeGenerator from './tripcode-generator';
@@ -37,6 +37,28 @@ export class Board {
     public readonly createdAt: Date,
     public readonly postCount: number
   ) {}
+
+  public processParsedMessage(nodes: Node[]): Node[] {
+    const result: Node[] = [];
+    for (const node of nodes) {
+      if (node.type === 'dice') {
+        const diceResult: number[] = [];
+        for (let i = 0; i < node.count; i++) {
+          diceResult.push(1 + Math.floor(Math.random() * node.max));
+        }
+
+        result.push({ ...node, result: diceResult });
+      } else if (typeof (node as any).children !== 'undefined') {
+        const children = this.processParsedMessage((node as any).children);
+
+        result.push({ ...node, children } as Node);
+      } else {
+        result.push(node);
+      }
+    }
+
+    return result;
+  }
 
   public async createThread(
     boardRepository: IBoardRepository,
@@ -74,7 +96,7 @@ export class Board {
 
     const author = tripcodeGenerator.createTripcode(name);
     const tokens = tokenizer.tokenize(message);
-    const parsedMessage = parser.parse(tokens);
+    const parsedMessage = this.processParsedMessage(parser.parse(tokens));
 
     let thread: Thread | null = null;
 
