@@ -140,6 +140,7 @@ export function registerScopedServices(container: Container) {
     async create() {
       const boardRepository = await container.resolve<IBoardRepository>(BOARD_REPOSITORY);
       const threadRepository = await container.resolve<IThreadRepository>(THREAD_REPOSITORY);
+      const postRepository = await container.resolve<IPostRepository>(POST_REPOSITORY);
       const fileRepository = await container.resolve<IFileRepository>(FILE_REPOSITORY);
       const queue = await container.resolve<IQueue>(QUEUE);
       const tripcodeGenerator = new WakabaTripcodeGenerator();
@@ -151,6 +152,7 @@ export function registerScopedServices(container: Container) {
       return new ThreadController(
         boardRepository,
         threadRepository,
+        postRepository,
         fileRepository,
         queue,
         tripcodeGenerator,

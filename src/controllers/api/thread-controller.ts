@@ -5,6 +5,7 @@ import IBoardRepository from '../../models/board-repository';
 import { FileManager } from '../../models/file-manager';
 import IFileRepository from '../../models/file-repository';
 import { IParser, ITokenizer } from '../../models/markup';
+import IPostRepository from '../../models/post-repository';
 import IThreadRepository from '../../models/thread-repository';
 import ITripcodeGenerator from '../../models/tripcode-generator';
 import { convertMulterFileToUploadedFile } from '../../models/types';
@@ -15,6 +16,7 @@ export class ThreadController {
   public constructor(
     protected readonly boardRepository: IBoardRepository,
     protected readonly threadRepository: IThreadRepository,
+    protected readonly postRepository: IPostRepository,
     protected readonly fileRepository: IFileRepository,
     protected readonly queue: IQueue,
     protected readonly tripcodeGenerator: ITripcodeGenerator,
@@ -34,6 +36,10 @@ export class ThreadController {
       const page = +(ctx.query.page || 0);
       const threads = await this.threadRepository.browseForBoard(board.id, page);
       await this.fileRepository.loadForPosts(threads);
+      await this.postRepository.loadLatestRepliesForThreads(threads);
+
+      const replies = threads.flatMap((thread) => thread.replies);
+      await this.fileRepository.loadForPosts(replies);
 
       return (ctx.body = { items: threads.map((thread) => thread.getData()) });
     }
@@ -41,6 +47,10 @@ export class ThreadController {
     const page = +(ctx.query.page || 0);
     const threads = await this.threadRepository.browse(page);
     await this.fileRepository.loadForPosts(threads);
+    await this.postRepository.loadLatestRepliesForThreads(threads);
+
+    const replies = threads.flatMap((thread) => thread.replies);
+    await this.fileRepository.loadForPosts(replies);
 
     ctx.body = { items: threads.map((thread) => thread.getData()) };
   };
@@ -61,6 +71,8 @@ export class ThreadController {
     }
 
     await this.fileRepository.loadForPost(thread);
+    await this.postRepository.loadLatestRepliesForThread(thread);
+    await this.fileRepository.loadForPosts(thread.replies);
 
     ctx.body = { item: thread.getData() };
   };

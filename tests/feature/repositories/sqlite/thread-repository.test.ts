@@ -48,6 +48,7 @@ function getExpectedThreadData(thread: Thread) {
     parsedMessage: thread.parsedMessage,
     ip: thread.ip,
     postCount: 1,
+    replies: [],
     createdAt: expect.any(Date),
     bumpedAt: expect.any(Date),
     files: [],

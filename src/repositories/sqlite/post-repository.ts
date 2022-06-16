@@ -3,6 +3,7 @@ import Board from '../../models/board';
 import { Node } from '../../models/markup';
 import Post from '../../models/post';
 import IPostRepository from '../../models/post-repository';
+import Thread from '../../models/thread';
 import SqlitePostAttributesRepository from './post-attributes-repository';
 import SqliteRepository from './repository';
 
@@ -159,6 +160,45 @@ export class SqlitePostRepository extends SqliteRepository implements IPostRepos
 
     await this.runAsync(sql, [id]);
     return post;
+  }
+
+  public async loadLatestRepliesForThreads(threads: Thread[]): Promise<void> {
+    if (!threads.length) {
+      return;
+    }
+
+    const threadsMap: { [id: number]: Thread } = {};
+    for (const thread of threads) {
+      threadsMap[thread.id] = thread;
+    }
+
+    const threadIds = threads.map((thread) => thread.id);
+    const sql = `SELECT * FROM (
+        SELECT
+          p.*,
+          b.id as board_id, b.slug as board_slug, b.title as board_title, b.created_at as board_created_at, b.post_count as board_post_count,
+          n.name,
+          t.tripcode,
+          i.ip,
+          RANK() OVER (PARTITION BY p.parent_id ORDER BY p.id DESC) AS rank
+        FROM posts p
+        INNER JOIN boards b ON b.id = p.board_id
+        LEFT JOIN names n ON n.id = p.name_id
+        LEFT JOIN tripcodes t ON t.id = p.tripcode_id
+        INNER JOIN ips i ON i.id = p.ip_id
+        WHERE p.parent_id IN (${threadIds.join(',')})
+        ORDER BY p.id
+      ) WHERE rank <= 3`;
+
+    const { rows } = await this.allAsync(sql);
+    for (const row of rows) {
+      const post = this.convertDtoToModel(row);
+      threadsMap[row.parent_id].replies.push(post);
+    }
+  }
+
+  public loadLatestRepliesForThread(thread: Thread): Promise<void> {
+    return this.loadLatestRepliesForThreads([thread]);
   }
 
   protected convertDtoToModel(dto: PostDto): Post {

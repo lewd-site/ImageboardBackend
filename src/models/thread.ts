@@ -4,7 +4,7 @@ import IBoardRepository from './board-repository';
 import File, { FileDto } from './file';
 import IFileRepository from './file-repository';
 import { IParser, ITokenizer, Node } from './markup';
-import Post from './post';
+import Post, { PostDto } from './post';
 import IPostRepository from './post-repository';
 import IThreadRepository from './thread-repository';
 import ITripcodeGenerator from './tripcode-generator';
@@ -19,6 +19,7 @@ export interface ThreadDto {
   readonly message: string;
   readonly message_parsed: Node[];
   readonly files: FileDto[];
+  readonly replies?: PostDto[];
   readonly created_at: string;
   readonly bumped_at: string;
   readonly post_count: number;
@@ -31,6 +32,7 @@ export class Thread {
   public static readonly BUMP_LIMIT = 500;
 
   public readonly files: File[] = [];
+  public readonly replies: Post[] = [];
 
   public constructor(
     public readonly id: number,
@@ -147,6 +149,7 @@ export class Thread {
       message: this.message,
       message_parsed: this.parsedMessage,
       files: this.files.map((file) => file.getData()),
+      replies: this.replies.map((reply) => reply.getData()),
       created_at: this.createdAt.toISOString(),
       bumped_at: this.bumpedAt.toISOString(),
       post_count: +this.postCount,
