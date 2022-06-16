@@ -91,7 +91,6 @@ export class ThreadController {
         this.boardRepository,
         this.threadRepository,
         this.fileRepository,
-        this.queue,
         this.tripcodeGenerator,
         this.tokenizer,
         this.parser,
@@ -103,6 +102,7 @@ export class ThreadController {
       );
 
       await this.fileManager.moveFiles(files);
+      this.queue.publish('thread_created', thread.getData());
 
       const { redirect } = ctx.request.query;
       if (typeof redirect !== 'undefined') {
@@ -138,7 +138,8 @@ export class ThreadController {
       throw new NotFoundError('slug');
     }
 
-    thread = await board.deleteThread(this.threadRepository, this.fileRepository, this.queue, threadId);
+    thread = await board.deleteThread(this.threadRepository, this.fileRepository, threadId);
+    this.queue.publish('thread_deleted', thread.getData());
 
     ctx.body = { item: thread.getData() };
   };

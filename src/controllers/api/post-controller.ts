@@ -128,7 +128,6 @@ export class PostController {
         this.threadRepository,
         this.postRepository,
         this.fileRepository,
-        this.queue,
         this.tripcodeGenerator,
         this.tokenizer,
         this.parser,
@@ -139,6 +138,7 @@ export class PostController {
       );
 
       await this.fileManager.moveFiles(files);
+      this.queue.publish('post_created', post.getData());
 
       const { redirect } = ctx.request.query;
       if (typeof redirect !== 'undefined') {
@@ -182,7 +182,8 @@ export class PostController {
       }
     }
 
-    post = await thread.deletePost(this.postRepository, this.fileRepository, this.queue, id);
+    post = await thread.deletePost(this.postRepository, this.fileRepository, id);
+    this.queue.publish('post_deleted', post.getData());
 
     ctx.body = { item: post.getData() };
   };

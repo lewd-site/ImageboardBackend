@@ -6,7 +6,6 @@ import IFileRepository from './file-repository';
 import { IParser, ITokenizer, Node } from './markup';
 import Post from './post';
 import IPostRepository from './post-repository';
-import IQueue from './queue';
 import IThreadRepository from './thread-repository';
 import ITripcodeGenerator from './tripcode-generator';
 import { FileInfo } from './types';
@@ -52,7 +51,6 @@ export class Thread {
     threadRepository: IThreadRepository,
     postRepository: IPostRepository,
     fileRepository: IFileRepository,
-    queue: IQueue,
     tripcodeGenerator: ITripcodeGenerator,
     tokenizer: ITokenizer,
     parser: IParser,
@@ -120,17 +118,10 @@ export class Thread {
 
     await fileRepository.loadForPost(post);
 
-    queue.publish('post_created', post.getData());
-
     return post;
   }
 
-  public async deletePost(
-    postRepository: IPostRepository,
-    fileRepository: IFileRepository,
-    queue: IQueue,
-    id: number
-  ): Promise<Post> {
+  public async deletePost(postRepository: IPostRepository, fileRepository: IFileRepository, id: number): Promise<Post> {
     let post = await postRepository.read(id);
     if (post === null || post.parentId !== this.id) {
       throw new NotFoundError('id');
@@ -142,8 +133,6 @@ export class Thread {
     }
 
     await fileRepository.loadForPost(post);
-
-    queue.publish('post_deleted', post.getData());
 
     return post;
   }

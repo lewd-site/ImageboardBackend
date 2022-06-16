@@ -1,10 +1,9 @@
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
-import IQueue from './queue';
 import Board from './board';
 import IBoardRepository from './board-repository';
 
 export class BoardManager {
-  public async createBoard(repository: IBoardRepository, queue: IQueue, slug: string, title: string): Promise<Board> {
+  public async createBoard(repository: IBoardRepository, slug: string, title: string): Promise<Board> {
     if (!slug.length) {
       throw new ValidationError('slug', 'required');
     }
@@ -39,18 +38,10 @@ export class BoardManager {
       throw new NotFoundError('slug');
     }
 
-    queue.publish('board_created', board.getData());
-
     return board;
   }
 
-  public async updateBoard(
-    repository: IBoardRepository,
-    queue: IQueue,
-    oldSlug: string,
-    slug: string,
-    title: string
-  ): Promise<Board> {
+  public async updateBoard(repository: IBoardRepository, oldSlug: string, slug: string, title: string): Promise<Board> {
     if (!slug.length) {
       throw new ValidationError('slug', 'required');
     }
@@ -85,12 +76,10 @@ export class BoardManager {
       throw new NotFoundError('slug');
     }
 
-    queue.publish('board_updated', board.getData());
-
     return board;
   }
 
-  public async deleteBoard(repository: IBoardRepository, queue: IQueue, slug: string): Promise<Board> {
+  public async deleteBoard(repository: IBoardRepository, slug: string): Promise<Board> {
     let board = await repository.readBySlug(slug);
     if (board === null) {
       throw new NotFoundError('slug');
@@ -100,8 +89,6 @@ export class BoardManager {
     if (board === null) {
       throw new NotFoundError('slug');
     }
-
-    queue.publish('board_deleted', board.getData());
 
     return board;
   }

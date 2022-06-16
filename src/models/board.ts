@@ -1,5 +1,4 @@
 import { NotFoundError, ValidationError } from '../errors';
-import IQueue from './queue';
 import IBoardRepository from './board-repository';
 import IFileRepository from './file-repository';
 import { IParser, ITokenizer, Node } from './markup';
@@ -64,7 +63,6 @@ export class Board {
     boardRepository: IBoardRepository,
     threadRepository: IThreadRepository,
     fileRepository: IFileRepository,
-    queue: IQueue,
     tripcodeGenerator: ITripcodeGenerator,
     tokenizer: ITokenizer,
     parser: IParser,
@@ -137,15 +135,12 @@ export class Board {
 
     await fileRepository.loadForPost(thread);
 
-    queue.publish('thread_created', thread.getData());
-
     return thread;
   }
 
   public async deleteThread(
     threadRepository: IThreadRepository,
     fileRepository: IFileRepository,
-    queue: IQueue,
     threadId: number
   ): Promise<Thread> {
     let thread = await threadRepository.read(threadId);
@@ -159,8 +154,6 @@ export class Board {
     }
 
     await fileRepository.loadForPost(thread);
-
-    queue.publish('thread_deleted', thread.getData());
 
     return thread;
   }
