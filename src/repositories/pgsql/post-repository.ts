@@ -171,7 +171,7 @@ export class PgsqlPostRepository extends PgsqlRepository implements IPostReposit
     }
 
     const threadIds = threads.map((thread) => thread.id);
-    const sql = `SELECT * FROM (
+    const sql = `SELECT ranked.* FROM (
         SELECT
           p.*,
           b.id as board_id, b.slug as board_slug, b.title as board_title, b.created_at as board_created_at, b.post_count as board_post_count,
@@ -186,7 +186,7 @@ export class PgsqlPostRepository extends PgsqlRepository implements IPostReposit
         INNER JOIN ips i ON i.id = p.ip_id
         WHERE p.parent_id IN (${threadIds.join(',')})
         ORDER BY p.id
-      ) WHERE rank <= 3`;
+      ) AS ranked WHERE rank <= 3`;
 
     const { rows } = await this.client.query(sql);
     for (const row of rows) {
