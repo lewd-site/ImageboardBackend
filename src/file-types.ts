@@ -66,6 +66,11 @@ const fileTypes: FileType[] = [
     mime: 'audio/mpeg',
   },
   {
+    signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xfa]) }],
+    ext: 'mp3',
+    mime: 'audio/mpeg',
+  },
+  {
     signatures: [{ position: 0, buffer: Buffer.from([0xff, 0xf3]) }],
     ext: 'mp3',
     mime: 'audio/mpeg',
