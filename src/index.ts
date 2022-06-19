@@ -3,6 +3,9 @@ import http from 'http';
 import createApp, { registerScopedServices } from './app';
 import config from './config';
 import Container from './container';
+import Parser from './markup/parser';
+import Tokenizer from './markup/tokenizer';
+import Board from './models/board';
 import IBoardRepository from './models/board-repository';
 import File from './models/file';
 import IFileRepository from './models/file-repository';
@@ -58,6 +61,9 @@ interface FileDto {
 }
 
 type IdMap = { [key: number]: number };
+
+const tokenizer = new Tokenizer();
+const parser = new Parser();
 
 async function loadAllThreads(threadRepository: IThreadRepository) {
   const threads = [];
@@ -161,7 +167,7 @@ async function importPosts(
 
   postsData.sort((a, b) => a.id - b.id);
 
-  const boardIds: number[] = [];
+  const boardIds: Set<number> = new Set();
   const threadIdMap: IdMap = {};
   const postIdMap: IdMap = {};
 
@@ -173,16 +179,16 @@ async function importPosts(
     }
 
     if (isThreadData(postData)) {
-      const thread = await importThread(threadRepository, fileRepository, board.id, postData, postIdMap);
+      const thread = await importThread(threadRepository, fileRepository, board, postData, postIdMap);
       threadIdMap[postData.id] = thread.id;
       postIdMap[postData.id] = thread.id;
     } else {
       const parentId = threadIdMap[postData.parent_id];
-      const post = await importPost(postRepository, fileRepository, board.id, parentId, postData, postIdMap);
+      const post = await importPost(postRepository, fileRepository, board, parentId, postData, postIdMap);
       postIdMap[postData.id] = post.id;
     }
 
-    boardIds.push(board.id);
+    boardIds.add(board.id);
   }
 
   for (const boardId of boardIds) {
@@ -197,17 +203,23 @@ async function importPosts(
 async function importThread(
   threadRepository: IThreadRepository,
   fileRepository: IFileRepository,
-  boardId: number,
+  board: Board,
   threadData: ThreadDto,
   postIdMap: IdMap
 ) {
+  let parsedMessage = threadData.message_parsed;
+  if (!parsedMessage.length) {
+    const tokens = tokenizer.tokenize(threadData.message);
+    parsedMessage = board.processParsedMessage(parser.parse(tokens));
+  }
+
   const thread = await threadRepository.add(
-    boardId,
+    board.id,
     threadData.subject || '',
     threadData.name || '',
     threadData.tripcode || '',
     updateRefLinksInRawMessage(threadData.message, postIdMap),
-    updateRefLinksInParsedMessage(threadData.message_parsed, postIdMap),
+    updateRefLinksInParsedMessage(parsedMessage, postIdMap),
     threadData.ip,
     new Date(threadData.created_at),
     threadData.bumped_at !== null ? new Date(threadData.bumped_at) : undefined
@@ -227,18 +239,24 @@ async function importThread(
 async function importPost(
   postRepository: IPostRepository,
   fileRepository: IFileRepository,
-  boardId: number,
+  board: Board,
   parentId: number,
   postData: PostDto,
   postIdMap: IdMap
 ) {
+  let parsedMessage = postData.message_parsed;
+  if (!parsedMessage.length) {
+    const tokens = tokenizer.tokenize(postData.message);
+    parsedMessage = board.processParsedMessage(parser.parse(tokens));
+  }
+
   const post = await postRepository.add(
-    boardId,
+    board.id,
     parentId,
     postData.name || '',
     postData.tripcode || '',
     updateRefLinksInRawMessage(postData.message, postIdMap),
-    updateRefLinksInParsedMessage(postData.message_parsed, postIdMap),
+    updateRefLinksInParsedMessage(parsedMessage, postIdMap),
     postData.ip,
     new Date(postData.created_at)
   );
