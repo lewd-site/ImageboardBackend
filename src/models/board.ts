@@ -47,6 +47,7 @@ export class Board {
         if (target !== null) {
           result.push({
             ...node,
+            slug: target.board.slug,
             threadID:
               typeof target.parentId !== 'undefined' && target.parentId !== null && target.parentId > 0
                 ? target.parentId
