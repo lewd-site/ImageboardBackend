@@ -88,9 +88,10 @@ export class Thread {
 
       await boardRepository.incrementPostCount(this.board.id);
       await threadRepository.incrementPostCount(this.id);
-      if (this.postCount < Thread.BUMP_LIMIT) {
-        await threadRepository.bumpThread(this.id);
-      }
+      // TODO: make bump limit configurable
+      // if (this.postCount < Thread.BUMP_LIMIT) {
+      await threadRepository.bumpThread(this.id);
+      // }
 
       for (const fileInfo of files) {
         const file = await fileRepository.readOrAdd(
