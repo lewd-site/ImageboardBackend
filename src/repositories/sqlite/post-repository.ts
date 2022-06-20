@@ -231,6 +231,10 @@ export class SqlitePostRepository extends SqliteRepository implements IPostRepos
   }
 
   public async loadReferencesForPosts(posts: (Post | Thread)[]): Promise<void> {
+    if (!posts.length) {
+      return;
+    }
+
     const postsMap = new Map<number, Post | Thread>();
     for (const post of posts) {
       postsMap.set(post.id, post);

@@ -229,6 +229,10 @@ export class PgsqlPostRepository extends PgsqlRepository implements IPostReposit
   }
 
   public async loadReferencesForPosts(posts: (Post | Thread)[]): Promise<void> {
+    if (!posts.length) {
+      return;
+    }
+
     const postsMap = new Map<number, Post | Thread>();
     for (const post of posts) {
       postsMap.set(post.id, post);
