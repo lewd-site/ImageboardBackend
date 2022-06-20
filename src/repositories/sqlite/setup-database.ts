@@ -65,11 +65,21 @@ export async function setupDatabase(db: sqlite3.Database) {
 
       db.run(`CREATE TABLE IF NOT EXISTS posts_files (
         id INTEGER NOT NULL PRIMARY KEY,
-        post_id INTEGER REFERENCES posts (id) ON DELETE CASCADE,
-        file_id INTEGER REFERENCES files (id) ON DELETE CASCADE
+        post_id INTEGER NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
+        file_id INTEGER NOT NULL REFERENCES files (id) ON DELETE CASCADE
       )`);
 
       db.run(`CREATE INDEX IF NOT EXISTS posts_files_post_id_idx ON posts_files (post_id)`);
+
+      db.run(`CREATE TABLE IF NOT EXISTS post_references (
+        id INTEGER NOT NULL PRIMARY KEY,
+        source_id INTEGER NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
+        target_id INTEGER NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
+        UNIQUE (source_id, target_id)
+      )`);
+
+      db.run(`CREATE INDEX IF NOT EXISTS post_references_source_id_idx ON post_references (source_id)`);
+      db.run(`CREATE INDEX IF NOT EXISTS post_references_target_id_idx ON post_references (target_id)`);
 
       resolve();
     });

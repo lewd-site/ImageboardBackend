@@ -6,6 +6,7 @@ import IFileRepository from './file-repository';
 import { IParser, ITokenizer, Node } from './markup';
 import Post, { PostDto } from './post';
 import IPostRepository from './post-repository';
+import PostReference, { getPostReferenceData, PostReferenceDto } from './reference';
 import IThreadRepository from './thread-repository';
 import ITripcodeGenerator from './tripcode-generator';
 import { FileInfo } from './types';
@@ -20,6 +21,8 @@ export interface ThreadDto {
   readonly message_parsed: Node[];
   readonly files: FileDto[];
   readonly replies?: PostDto[];
+  readonly references: PostReferenceDto[];
+  readonly referenced_by: PostReferenceDto[];
   readonly created_at: string;
   readonly bumped_at: string;
   readonly post_count: number;
@@ -33,6 +36,8 @@ export class Thread {
 
   public readonly files: File[] = [];
   public readonly replies: Post[] = [];
+  public readonly references: PostReference[] = [];
+  public readonly referencedBy: PostReference[] = [];
 
   public constructor(
     public readonly id: number,
@@ -75,7 +80,7 @@ export class Thread {
 
     const author = tripcodeGenerator.createTripcode(name);
     const tokens = tokenizer.tokenize(message);
-    const parsedMessage = this.board.processParsedMessage(parser.parse(tokens));
+    const parsedMessage = await this.board.processParsedMessage(postRepository, parser.parse(tokens));
 
     let post: Post | null = null;
 
@@ -151,6 +156,8 @@ export class Thread {
       message_parsed: this.parsedMessage,
       files: this.files.map((file) => file.getData()),
       replies: this.replies.map((reply) => reply.getData()),
+      references: this.references.map(getPostReferenceData),
+      referenced_by: this.referencedBy.map(getPostReferenceData),
       created_at: this.createdAt.toISOString(),
       bumped_at: this.bumpedAt.toISOString(),
       post_count: +this.postCount,

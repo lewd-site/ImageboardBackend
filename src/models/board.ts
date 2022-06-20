@@ -2,6 +2,7 @@ import { NotFoundError, ValidationError } from '../errors';
 import IBoardRepository from './board-repository';
 import IFileRepository from './file-repository';
 import { IParser, ITokenizer, Node } from './markup';
+import IPostRepository from './post-repository';
 import Thread from './thread';
 import IThreadRepository from './thread-repository';
 import ITripcodeGenerator from './tripcode-generator';
@@ -37,10 +38,24 @@ export class Board {
     public readonly postCount: number
   ) {}
 
-  public processParsedMessage(nodes: Node[]): Node[] {
+  public async processParsedMessage(postRepository: IPostRepository, nodes: Node[]): Promise<Node[]> {
     const result: Node[] = [];
     for (const node of nodes) {
-      if (node.type === 'dice') {
+      if (node.type === 'reflink') {
+        const targetId = node.postID;
+        const target = await postRepository.read(targetId);
+        if (target !== null) {
+          result.push({
+            ...node,
+            threadID:
+              typeof target.parentId !== 'undefined' && target.parentId !== null && target.parentId > 0
+                ? target.parentId
+                : target.id,
+          });
+        } else {
+          result.push({ type: 'text', text: `>>${node.postID}` });
+        }
+      } else if (node.type === 'dice') {
         const diceResult: number[] = [];
         for (let i = 0; i < node.count; i++) {
           diceResult.push(1 + Math.floor(Math.random() * node.max));
@@ -48,7 +63,7 @@ export class Board {
 
         result.push({ ...node, result: diceResult });
       } else if (typeof (node as any).children !== 'undefined') {
-        const children = this.processParsedMessage((node as any).children);
+        const children = await this.processParsedMessage(postRepository, (node as any).children);
 
         result.push({ ...node, children } as Node);
       } else {
@@ -62,6 +77,7 @@ export class Board {
   public async createThread(
     boardRepository: IBoardRepository,
     threadRepository: IThreadRepository,
+    postRepository: IPostRepository,
     fileRepository: IFileRepository,
     tripcodeGenerator: ITripcodeGenerator,
     tokenizer: ITokenizer,
@@ -94,7 +110,7 @@ export class Board {
 
     const author = tripcodeGenerator.createTripcode(name);
     const tokens = tokenizer.tokenize(message);
-    const parsedMessage = this.processParsedMessage(parser.parse(tokens));
+    const parsedMessage = await this.processParsedMessage(postRepository, parser.parse(tokens));
 
     let thread: Thread | null = null;
 

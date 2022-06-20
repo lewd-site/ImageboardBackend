@@ -43,6 +43,7 @@ export class PostController {
 
       const posts = await this.postRepository.browseForThread(threadId);
       await this.fileRepository.loadForPosts(posts);
+      await this.postRepository.loadReferencesForPosts(posts);
 
       return (ctx.body = { items: posts.map((post) => post.getData()) });
     }
@@ -56,12 +57,14 @@ export class PostController {
 
       const posts = await this.postRepository.browseForBoard(board.id);
       await this.fileRepository.loadForPosts(posts);
+      await this.postRepository.loadReferencesForPosts(posts);
 
       return (ctx.body = { items: posts.map((post) => post.getData()) });
     }
 
     const posts = await this.postRepository.browse();
     await this.fileRepository.loadForPosts(posts);
+    await this.postRepository.loadReferencesForPosts(posts);
 
     ctx.body = { items: posts.map((post) => post.getData()) };
   };
@@ -90,6 +93,7 @@ export class PostController {
     }
 
     await this.fileRepository.loadForPost(post);
+    await this.postRepository.loadReferencesForPost(post);
 
     ctx.body = { item: post.getData() };
   };

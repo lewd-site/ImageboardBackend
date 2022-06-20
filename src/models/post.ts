@@ -1,6 +1,7 @@
 import Board from './board';
 import File, { FileDto } from './file';
 import { Node } from './markup';
+import PostReference, { getPostReferenceData, PostReferenceDto } from './reference';
 
 export interface PostDto {
   readonly id: number;
@@ -11,6 +12,8 @@ export interface PostDto {
   readonly message: string;
   readonly message_parsed: Node[];
   readonly files: FileDto[];
+  readonly references: PostReferenceDto[];
+  readonly referenced_by: PostReferenceDto[];
   readonly created_at: string;
 }
 
@@ -19,6 +22,8 @@ export class Post {
   public static readonly MAX_MESSAGE_LENGTH = 8000;
 
   public readonly files: File[] = [];
+  public readonly references: PostReference[] = [];
+  public readonly referencedBy: PostReference[] = [];
 
   public constructor(
     public readonly id: number,
@@ -42,6 +47,8 @@ export class Post {
       message: this.message,
       message_parsed: this.parsedMessage,
       files: this.files.map((file) => file.getData()),
+      references: this.references.map(getPostReferenceData),
+      referenced_by: this.referencedBy.map(getPostReferenceData),
       created_at: this.createdAt.toISOString(),
     };
   }

@@ -37,9 +37,11 @@ export class ThreadController {
       const threads = await this.threadRepository.browseForBoard(board.id, page);
       await this.fileRepository.loadForPosts(threads);
       await this.postRepository.loadLatestRepliesForThreads(threads);
+      await this.postRepository.loadReferencesForPosts(threads);
 
       const replies = threads.flatMap((thread) => thread.replies);
       await this.fileRepository.loadForPosts(replies);
+      await this.postRepository.loadReferencesForPosts(replies);
 
       return (ctx.body = { items: threads.map((thread) => thread.getData()) });
     }
@@ -48,9 +50,11 @@ export class ThreadController {
     const threads = await this.threadRepository.browse(page);
     await this.fileRepository.loadForPosts(threads);
     await this.postRepository.loadLatestRepliesForThreads(threads);
+    await this.postRepository.loadReferencesForPosts(threads);
 
     const replies = threads.flatMap((thread) => thread.replies);
     await this.fileRepository.loadForPosts(replies);
+    await this.postRepository.loadReferencesForPosts(replies);
 
     ctx.body = { items: threads.map((thread) => thread.getData()) };
   };
@@ -72,7 +76,10 @@ export class ThreadController {
 
     await this.fileRepository.loadForPost(thread);
     await this.postRepository.loadLatestRepliesForThread(thread);
+    await this.postRepository.loadReferencesForPost(thread);
+
     await this.fileRepository.loadForPosts(thread.replies);
+    await this.postRepository.loadReferencesForPosts(thread.replies);
 
     ctx.body = { item: thread.getData() };
   };
@@ -102,6 +109,7 @@ export class ThreadController {
       const thread = await board.createThread(
         this.boardRepository,
         this.threadRepository,
+        this.postRepository,
         this.fileRepository,
         this.tripcodeGenerator,
         this.tokenizer,

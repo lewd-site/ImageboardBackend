@@ -57,6 +57,8 @@ test('create post', async () => {
       message: 'Test reply 1',
       message_parsed: [{ type: 'text', text: 'Test reply 1' }],
       files: [],
+      referenced_by: [],
+      references: [],
       created_at: expect.any(String),
     },
   });
@@ -101,6 +103,8 @@ test('create post with file', async () => {
           created_at: expect.any(String),
         },
       ],
+      referenced_by: [],
+      references: [],
       created_at: expect.any(String),
     },
   });
@@ -149,6 +153,8 @@ test('get posts', async () => {
             created_at: expect.any(String),
           },
         ],
+        referenced_by: [],
+        references: [],
         created_at: expect.any(String),
       },
       {
@@ -160,6 +166,8 @@ test('get posts', async () => {
         message: 'Test reply 1',
         message_parsed: [{ type: 'text', text: 'Test reply 1' }],
         files: [],
+        referenced_by: [],
+        references: [],
         created_at: expect.any(String),
       },
       {
@@ -171,6 +179,8 @@ test('get posts', async () => {
         message: 'Test reply 2',
         message_parsed: [{ type: 'text', text: 'Test reply 2' }],
         files: [],
+        referenced_by: [],
+        references: [],
         created_at: expect.any(String),
       },
     ],
@@ -206,6 +216,8 @@ test('get post', async () => {
       message: 'Test reply 2',
       message_parsed: [{ type: 'text', text: 'Test reply 2' }],
       files: [],
+      referenced_by: [],
+      references: [],
       created_at: expect.any(String),
     },
   });
@@ -268,6 +280,8 @@ test('delete post', async () => {
       message: 'Test reply 2',
       message_parsed: [{ type: 'text', text: 'Test reply 2' }],
       files: [],
+      referenced_by: [],
+      references: [],
       created_at: expect.any(String),
     },
   });

@@ -179,7 +179,7 @@ async function importPosts(
     }
 
     if (isThreadData(postData)) {
-      const thread = await importThread(threadRepository, fileRepository, board, postData, postIdMap);
+      const thread = await importThread(threadRepository, postRepository, fileRepository, board, postData, postIdMap);
       threadIdMap[postData.id] = thread.id;
       postIdMap[postData.id] = thread.id;
     } else {
@@ -202,6 +202,7 @@ async function importPosts(
 
 async function importThread(
   threadRepository: IThreadRepository,
+  postRepository: IPostRepository,
   fileRepository: IFileRepository,
   board: Board,
   threadData: ThreadDto,
@@ -210,7 +211,7 @@ async function importThread(
   let parsedMessage = threadData.message_parsed;
   if (!parsedMessage.length) {
     const tokens = tokenizer.tokenize(threadData.message);
-    parsedMessage = board.processParsedMessage(parser.parse(tokens));
+    parsedMessage = await board.processParsedMessage(postRepository, parser.parse(tokens));
   }
 
   const thread = await threadRepository.add(
@@ -247,7 +248,7 @@ async function importPost(
   let parsedMessage = postData.message_parsed;
   if (!parsedMessage.length) {
     const tokens = tokenizer.tokenize(postData.message);
-    parsedMessage = board.processParsedMessage(parser.parse(tokens));
+    parsedMessage = await board.processParsedMessage(postRepository, parser.parse(tokens));
   }
 
   const post = await postRepository.add(
@@ -354,6 +355,32 @@ async function main() {
           const data = await readFile(process.argv[3], 'utf8');
           const threads: ThreadDto[] = JSON.parse(data);
           await importPosts(boardRepository, threadRepository, postRepository, fileRepository, threads);
+          break;
+        }
+
+        case 'process-markup': {
+          const postRepository = await container.resolve<IPostRepository>(POST_REPOSITORY);
+          const posts = await postRepository.browse();
+          let index = 0;
+          for (const post of posts) {
+            const tokens = tokenizer.tokenize(post.message);
+            const parsedMessage = await post.board.processParsedMessage(postRepository, parser.parse(tokens));
+            await postRepository.updateMessage(post.id, post.message, parsedMessage);
+            console.log(`${++index}/${posts.length}`);
+          }
+
+          break;
+        }
+
+        case 'process-references': {
+          const postRepository = await container.resolve<IPostRepository>(POST_REPOSITORY);
+          const posts = await postRepository.browse();
+          let index = 0;
+          for (const post of posts) {
+            await postRepository.addPostReferences(post);
+            console.log(`${++index}/${posts.length}`);
+          }
+
           break;
         }
 

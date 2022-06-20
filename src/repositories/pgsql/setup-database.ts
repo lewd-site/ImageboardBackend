@@ -63,9 +63,19 @@ export async function setupDatabase(client: ClientBase) {
 
   await client.query(`CREATE TABLE IF NOT EXISTS posts_files (
     id serial PRIMARY KEY,
-    post_id integer REFERENCES posts (id) ON DELETE CASCADE,
-    file_id integer REFERENCES files (id) ON DELETE CASCADE
+    post_id integer NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
+    file_id integer NOT NULL REFERENCES files (id) ON DELETE CASCADE
   )`);
 
   await client.query(`CREATE INDEX IF NOT EXISTS posts_files_post_id_idx ON posts_files (post_id)`);
+
+  await client.query(`CREATE TABLE IF NOT EXISTS post_references (
+    id serial PRIMARY KEY,
+    source_id integer NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
+    target_id integer NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
+    UNIQUE (source_id, target_id)
+  )`);
+
+  await client.query(`CREATE INDEX IF NOT EXISTS post_references_source_id_idx ON post_references (source_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS post_references_target_id_idx ON post_references (target_id)`);
 }

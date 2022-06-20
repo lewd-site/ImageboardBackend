@@ -148,6 +148,22 @@ export class SqliteThreadRepository extends SqliteRepository implements IThreadR
     return await this.read(id);
   }
 
+  protected async addReference(sourceId: number, targetId: number): Promise<void> {
+    const sql = `INSERT OR IGNORE INTO post_references (source_id, target_id) VALUES (?, ?)`;
+    const params = [sourceId, targetId];
+    await this.runAsync(sql, params);
+  }
+
+  protected async addReferences(sourceId: number, nodes: Node[]): Promise<void> {
+    for (const node of nodes) {
+      if (node.type === 'reflink') {
+        await this.addReference(sourceId, node.postID);
+      } else if (typeof (node as any).children !== 'undefined') {
+        await this.addReferences(sourceId, (node as any).children);
+      }
+    }
+  }
+
   public async add(
     boardId: number,
     subject: string,
@@ -183,7 +199,10 @@ export class SqliteThreadRepository extends SqliteRepository implements IThreadR
     }
 
     const result = await this.runAsync(sql, params);
-    return this.read(result.lastID);
+    const id = result.lastID;
+    await this.addReferences(id, parsedMessage);
+
+    return this.read(id);
   }
 
   public async delete(id: number): Promise<Thread | null> {

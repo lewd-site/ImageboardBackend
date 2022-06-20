@@ -114,6 +114,26 @@ export class PgsqlPostRepository extends PgsqlRepository implements IPostReposit
     return this.convertDtoToModel(result.rows[0]);
   }
 
+  protected async addReference(sourceId: number, targetId: number): Promise<void> {
+    const sql = `INSERT INTO post_references (source_id, target_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`;
+    const params = [sourceId, targetId];
+    await this.client.query(sql, params);
+  }
+
+  protected async addReferences(sourceId: number, nodes: Node[]): Promise<void> {
+    for (const node of nodes) {
+      if (node.type === 'reflink') {
+        await this.addReference(sourceId, node.postID);
+      } else if (typeof (node as any).children !== 'undefined') {
+        await this.addReferences(sourceId, (node as any).children);
+      }
+    }
+  }
+
+  public addPostReferences(post: Post): Promise<void> {
+    return this.addReferences(post.id, post.parsedMessage);
+  }
+
   public async add(
     boardId: number,
     parentId: number,
@@ -144,7 +164,16 @@ export class PgsqlPostRepository extends PgsqlRepository implements IPostReposit
     }
 
     const result = await this.client.query(sql, params);
-    return this.read(+result.rows[0].id);
+    const id = +result.rows[0].id;
+    await this.addReferences(id, parsedMessage);
+
+    return this.read(id);
+  }
+
+  public async updateMessage(id: number, message: string, parsedMessage: Node[]): Promise<void> {
+    const sql = `UPDATE posts SET message = $1, message_parsed = $2 WHERE id = $3`;
+    const params = [message, JSON.stringify(parsedMessage), id];
+    await this.client.query(sql, params);
   }
 
   public async delete(id: number): Promise<Post | null> {
@@ -197,6 +226,47 @@ export class PgsqlPostRepository extends PgsqlRepository implements IPostReposit
 
   public loadLatestRepliesForThread(thread: Thread): Promise<void> {
     return this.loadLatestRepliesForThreads([thread]);
+  }
+
+  public async loadReferencesForPosts(posts: (Post | Thread)[]): Promise<void> {
+    const postsMap = new Map<number, Post | Thread>();
+    for (const post of posts) {
+      postsMap.set(post.id, post);
+    }
+
+    const postIds = [...postsMap.keys()];
+    const sql = `SELECT s.id as source_id, s.parent_id as source_parent_id, t.id as target_id, t.parent_id as target_parent_id
+      FROM post_references pr
+      INNER JOIN posts s ON pr.source_id = s.id
+      INNER JOIN posts t ON pr.target_id = t.id
+      WHERE pr.source_id IN (${postIds.join(',')}) OR pr.target_id IN (${postIds.join(',')})`;
+
+    const { rows } = await this.client.query(sql);
+    for (const row of rows) {
+      const source = postsMap.get(row.source_id);
+      if (typeof source !== 'undefined') {
+        source.references.push({
+          sourceId: row.source_id,
+          sourceParentId: row.source_parent_id,
+          targetId: row.target_id,
+          targetParentId: row.target_parent_id,
+        });
+      }
+
+      const target = postsMap.get(row.target_id);
+      if (typeof target !== 'undefined') {
+        target.referencedBy.push({
+          sourceId: row.source_id,
+          sourceParentId: row.source_parent_id,
+          targetId: row.target_id,
+          targetParentId: row.target_parent_id,
+        });
+      }
+    }
+  }
+
+  public loadReferencesForPost(post: Post | Thread): Promise<void> {
+    return this.loadReferencesForPosts([post]);
   }
 
   protected convertDtoToModel(dto: PostDto): Post {

@@ -49,6 +49,8 @@ function getExpectedThreadData(thread: Thread) {
     ip: thread.ip,
     postCount: 1,
     replies: [],
+    referencedBy: [],
+    references: [],
     createdAt: expect.any(Date),
     bumpedAt: expect.any(Date),
     files: [],

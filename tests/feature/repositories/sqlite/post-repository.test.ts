@@ -63,6 +63,8 @@ function getExpectedPostData(post: Post | Thread) {
     ip: post.ip,
     createdAt: expect.any(Date),
     files: [],
+    referencedBy: [],
+    references: [],
   };
 }
 

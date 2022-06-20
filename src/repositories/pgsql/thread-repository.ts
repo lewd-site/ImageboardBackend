@@ -145,6 +145,22 @@ export class PgsqlThreadRepository extends PgsqlRepository implements IThreadRep
     return await this.read(id);
   }
 
+  protected async addReference(sourceId: number, targetId: number): Promise<void> {
+    const sql = `INSERT INTO post_references (source_id, target_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`;
+    const params = [sourceId, targetId];
+    await this.client.query(sql, params);
+  }
+
+  protected async addReferences(sourceId: number, nodes: Node[]): Promise<void> {
+    for (const node of nodes) {
+      if (node.type === 'reflink') {
+        await this.addReference(sourceId, node.postID);
+      } else if (typeof (node as any).children !== 'undefined') {
+        await this.addReferences(sourceId, (node as any).children);
+      }
+    }
+  }
+
   public async add(
     boardId: number,
     subject: string,
@@ -181,7 +197,10 @@ export class PgsqlThreadRepository extends PgsqlRepository implements IThreadRep
     }
 
     const result = await this.client.query(sql, params);
-    return this.read(+result.rows[0].id);
+    const id = +result.rows[0].id;
+    await this.addReferences(id, parsedMessage);
+
+    return this.read(id);
   }
 
   public async delete(id: number): Promise<Thread | null> {
