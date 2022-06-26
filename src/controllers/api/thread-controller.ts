@@ -122,6 +122,14 @@ export class ThreadController {
       );
 
       await this.fileManager.moveFiles(files);
+
+      await this.fileRepository.loadForPost(thread);
+      await this.postRepository.loadLatestRepliesForThread(thread);
+      await this.postRepository.loadReferencesForPost(thread);
+
+      await this.fileRepository.loadForPosts(thread.replies);
+      await this.postRepository.loadReferencesForPosts(thread.replies);
+
       this.queue.publish('thread_created', thread.getData());
 
       const { redirect } = ctx.request.query;
@@ -159,6 +167,14 @@ export class ThreadController {
     }
 
     thread = await board.deleteThread(this.threadRepository, this.fileRepository, threadId);
+
+    await this.fileRepository.loadForPost(thread);
+    await this.postRepository.loadLatestRepliesForThread(thread);
+    await this.postRepository.loadReferencesForPost(thread);
+
+    await this.fileRepository.loadForPosts(thread.replies);
+    await this.postRepository.loadReferencesForPosts(thread.replies);
+
     this.queue.publish('thread_deleted', thread.getData());
 
     ctx.body = { item: thread.getData() };

@@ -150,8 +150,6 @@ export class Board {
       throw err;
     }
 
-    await fileRepository.loadForPost(thread);
-
     return thread;
   }
 
@@ -169,8 +167,6 @@ export class Board {
     if (thread === null) {
       throw new NotFoundError('threadId');
     }
-
-    await fileRepository.loadForPost(thread);
 
     return thread;
   }

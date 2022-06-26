@@ -124,8 +124,6 @@ export class Thread {
       throw err;
     }
 
-    await fileRepository.loadForPost(post);
-
     return post;
   }
 
@@ -139,8 +137,6 @@ export class Thread {
     if (post === null) {
       throw new NotFoundError('id');
     }
-
-    await fileRepository.loadForPost(post);
 
     return post;
   }

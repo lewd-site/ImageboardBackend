@@ -142,6 +142,10 @@ export class PostController {
       );
 
       await this.fileManager.moveFiles(files);
+
+      await this.fileRepository.loadForPost(post);
+      await this.postRepository.loadReferencesForPost(post);
+
       this.queue.publish('post_created', post.getData());
 
       const { redirect } = ctx.request.query;
@@ -187,6 +191,10 @@ export class PostController {
     }
 
     post = await thread.deletePost(this.postRepository, this.fileRepository, id);
+
+    await this.fileRepository.loadForPost(post);
+    await this.postRepository.loadReferencesForPost(post);
+
     this.queue.publish('post_deleted', post.getData());
 
     ctx.body = { item: post.getData() };
