@@ -92,7 +92,7 @@ export async function setupDatabase(client: ClientBase) {
     created_at timestamp with time zone NOT NULL
   )`);
 
-  await client.query(`CREATE INDEX IF NOT EXISTS embeds_url_idx ON embeds (utl)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS embeds_url_idx ON embeds (url)`);
 
   await client.query(`CREATE TABLE IF NOT EXISTS posts_embeds (
     id serial PRIMARY KEY,
