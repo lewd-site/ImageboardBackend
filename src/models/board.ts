@@ -1,4 +1,5 @@
 import { NotFoundError, ValidationError } from '../errors';
+import OEmbed from '../oembed';
 import IBoardRepository from './board-repository';
 import IFileRepository from './file-repository';
 import { IParser, ITokenizer, Node } from './markup';
@@ -38,7 +39,7 @@ export class Board {
     public readonly postCount: number
   ) {}
 
-  public async processParsedMessage(postRepository: IPostRepository, nodes: Node[]): Promise<Node[]> {
+  public async processParsedMessage(postRepository: IPostRepository, oembed: OEmbed, nodes: Node[]): Promise<Node[]> {
     const result: Node[] = [];
     for (const node of nodes) {
       if (node.type === 'reflink') {
@@ -56,6 +57,17 @@ export class Board {
         } else {
           result.push({ type: 'text', text: `>>${node.postID}` });
         }
+      } else if (node.type === 'link') {
+        const embed = await oembed.getEmbedInfo(node.url);
+        if (embed !== null) {
+          if (embed.type === 'video/x-youtube') {
+            result.push({ ...node, text: embed.name, icon: 'youtube' });
+          } else {
+            result.push({ ...node, text: embed.name });
+          }
+        } else {
+          result.push(node);
+        }
       } else if (node.type === 'dice') {
         const diceResult: number[] = [];
         for (let i = 0; i < node.count; i++) {
@@ -64,7 +76,7 @@ export class Board {
 
         result.push({ ...node, result: diceResult });
       } else if (typeof (node as any).children !== 'undefined') {
-        const children = await this.processParsedMessage(postRepository, (node as any).children);
+        const children = await this.processParsedMessage(postRepository, oembed, (node as any).children);
 
         result.push({ ...node, children } as Node);
       } else {
@@ -83,6 +95,7 @@ export class Board {
     tripcodeGenerator: ITripcodeGenerator,
     tokenizer: ITokenizer,
     parser: IParser,
+    oembed: OEmbed,
     subject: string,
     name: string,
     message: string,
@@ -111,7 +124,7 @@ export class Board {
 
     const author = tripcodeGenerator.createTripcode(name);
     const tokens = tokenizer.tokenize(message);
-    const parsedMessage = await this.processParsedMessage(postRepository, parser.parse(tokens));
+    const parsedMessage = await this.processParsedMessage(postRepository, oembed, parser.parse(tokens));
 
     let thread: Thread | null = null;
 

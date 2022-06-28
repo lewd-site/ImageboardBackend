@@ -9,6 +9,7 @@ import setupDatabase from '../../../../src/repositories/sqlite/setup-database';
 import SqlitePostAttributesRepository from '../../../../src/repositories/sqlite/post-attributes-repository';
 import SqlitePostRepository from '../../../../src/repositories/sqlite/post-repository';
 import SqliteThreadRepository from '../../../../src/repositories/sqlite/thread-repository';
+import SqliteEmbedRepository from '../../../../src/repositories/sqlite/embed-repository';
 
 let db: sqlite3.Database | null = null;
 
@@ -63,6 +64,7 @@ function getExpectedPostData(post: Post | Thread) {
     ip: post.ip,
     createdAt: expect.any(Date),
     files: [],
+    embeds: [],
     referencedBy: [],
     references: [],
   };
@@ -74,10 +76,11 @@ test('add', async () => {
   const board = await boardRepository.add('a', 'Anime');
 
   const postAttributesRepository = new SqlitePostAttributesRepository(db!);
-  const threadRepository = new SqliteThreadRepository(db!, postAttributesRepository);
+  const embedRepository = new SqliteEmbedRepository(db!);
+  const threadRepository = new SqliteThreadRepository(db!, postAttributesRepository, embedRepository);
   const thread = await addThread(threadRepository, board!);
 
-  const postRepository = new SqlitePostRepository(db!, postAttributesRepository);
+  const postRepository = new SqlitePostRepository(db!, postAttributesRepository, embedRepository);
 
   // Act
   const post = await addPost(postRepository, board!, thread);
@@ -93,10 +96,11 @@ test('delete', async () => {
   const board = await boardRepository.add('a', 'Anime');
 
   const postAttributesRepository = new SqlitePostAttributesRepository(db!);
-  const threadRepository = new SqliteThreadRepository(db!, postAttributesRepository);
+  const embedRepository = new SqliteEmbedRepository(db!);
+  const threadRepository = new SqliteThreadRepository(db!, postAttributesRepository, embedRepository);
   const thread = await addThread(threadRepository, board!);
 
-  const postRepository = new SqlitePostRepository(db!, postAttributesRepository);
+  const postRepository = new SqlitePostRepository(db!, postAttributesRepository, embedRepository);
   const post = await addPost(postRepository, board!, thread);
 
   // Act
@@ -115,11 +119,12 @@ test('browse', async () => {
   const board = await boardRepository.add('a', 'Anime');
 
   const postAttributesRepository = new SqlitePostAttributesRepository(db!);
-  const threadRepository = new SqliteThreadRepository(db!, postAttributesRepository);
+  const embedRepository = new SqliteEmbedRepository(db!);
+  const threadRepository = new SqliteThreadRepository(db!, postAttributesRepository, embedRepository);
   const thread1 = await addThread(threadRepository, board!);
   const thread2 = await addThread(threadRepository, board!);
 
-  const postRepository = new SqlitePostRepository(db!, postAttributesRepository);
+  const postRepository = new SqlitePostRepository(db!, postAttributesRepository, embedRepository);
   const post1 = await addPost(postRepository, board!, thread1);
   const post2 = await addPost(postRepository, board!, thread2);
 
@@ -141,11 +146,12 @@ test('browse for thread', async () => {
   const board = await boardRepository.add('a', 'Anime');
 
   const postAttributesRepository = new SqlitePostAttributesRepository(db!);
-  const threadRepository = new SqliteThreadRepository(db!, postAttributesRepository);
+  const embedRepository = new SqliteEmbedRepository(db!);
+  const threadRepository = new SqliteThreadRepository(db!, postAttributesRepository, embedRepository);
   const thread1 = await addThread(threadRepository, board!);
   const thread2 = await addThread(threadRepository, board!);
 
-  const postRepository = new SqlitePostRepository(db!, postAttributesRepository);
+  const postRepository = new SqlitePostRepository(db!, postAttributesRepository, embedRepository);
   const post1 = await addPost(postRepository, board!, thread1);
   await addPost(postRepository, board!, thread2);
 
@@ -162,10 +168,11 @@ test('read', async () => {
   const board = await boardRepository.add('a', 'Anime');
 
   const postAttributesRepository = new SqlitePostAttributesRepository(db!);
-  const threadRepository = new SqliteThreadRepository(db!, postAttributesRepository);
+  const embedRepository = new SqliteEmbedRepository(db!);
+  const threadRepository = new SqliteThreadRepository(db!, postAttributesRepository, embedRepository);
   const thread = await addThread(threadRepository, board!);
 
-  const postRepository = new SqlitePostRepository(db!, postAttributesRepository);
+  const postRepository = new SqlitePostRepository(db!, postAttributesRepository, embedRepository);
   const post = await addPost(postRepository, board!, thread);
   await addPost(postRepository, board!, thread);
 

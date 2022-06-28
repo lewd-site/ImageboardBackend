@@ -2,6 +2,7 @@ import { unlink } from 'fs/promises';
 import Koa from 'koa';
 import { NotFoundError } from '../../errors';
 import IBoardRepository from '../../models/board-repository';
+import IEmbedRepository from '../../models/embed-repository';
 import { FileManager } from '../../models/file-manager';
 import IFileRepository from '../../models/file-repository';
 import { IParser, ITokenizer } from '../../models/markup';
@@ -11,6 +12,7 @@ import ITripcodeGenerator from '../../models/tripcode-generator';
 import { convertMulterFileToUploadedFile } from '../../models/types';
 import IQueue from '../../models/queue';
 import { fileExists } from '../../utils';
+import OEmbed from '../../oembed';
 
 export class ThreadController {
   public constructor(
@@ -18,6 +20,8 @@ export class ThreadController {
     protected readonly threadRepository: IThreadRepository,
     protected readonly postRepository: IPostRepository,
     protected readonly fileRepository: IFileRepository,
+    protected readonly embedRepository: IEmbedRepository,
+    protected readonly oembed: OEmbed,
     protected readonly queue: IQueue,
     protected readonly tripcodeGenerator: ITripcodeGenerator,
     protected readonly tokenizer: ITokenizer,
@@ -36,11 +40,13 @@ export class ThreadController {
       const page = +(ctx.query.page || 0);
       const threads = await this.threadRepository.browseForBoard(board.id, page);
       await this.fileRepository.loadForPosts(threads);
+      await this.embedRepository.loadForPosts(threads);
       await this.postRepository.loadLatestRepliesForThreads(threads);
       await this.postRepository.loadReferencesForPosts(threads);
 
       const replies = threads.flatMap((thread) => thread.replies);
       await this.fileRepository.loadForPosts(replies);
+      await this.embedRepository.loadForPosts(replies);
       await this.postRepository.loadReferencesForPosts(replies);
 
       return (ctx.body = { items: threads.map((thread) => thread.getData()) });
@@ -49,11 +55,13 @@ export class ThreadController {
     const page = +(ctx.query.page || 0);
     const threads = await this.threadRepository.browse(page);
     await this.fileRepository.loadForPosts(threads);
+    await this.embedRepository.loadForPosts(threads);
     await this.postRepository.loadLatestRepliesForThreads(threads);
     await this.postRepository.loadReferencesForPosts(threads);
 
     const replies = threads.flatMap((thread) => thread.replies);
     await this.fileRepository.loadForPosts(replies);
+    await this.embedRepository.loadForPosts(replies);
     await this.postRepository.loadReferencesForPosts(replies);
 
     ctx.body = { items: threads.map((thread) => thread.getData()) };
@@ -75,10 +83,12 @@ export class ThreadController {
     }
 
     await this.fileRepository.loadForPost(thread);
+    await this.embedRepository.loadForPost(thread);
     await this.postRepository.loadLatestRepliesForThread(thread);
     await this.postRepository.loadReferencesForPost(thread);
 
     await this.fileRepository.loadForPosts(thread.replies);
+    await this.embedRepository.loadForPosts(thread.replies);
     await this.postRepository.loadReferencesForPosts(thread.replies);
 
     ctx.body = { item: thread.getData() };
@@ -114,6 +124,7 @@ export class ThreadController {
         this.tripcodeGenerator,
         this.tokenizer,
         this.parser,
+        this.oembed,
         subject,
         name,
         message,
@@ -124,10 +135,12 @@ export class ThreadController {
       await this.fileManager.moveFiles(files);
 
       await this.fileRepository.loadForPost(thread);
+      await this.embedRepository.loadForPost(thread);
       await this.postRepository.loadLatestRepliesForThread(thread);
       await this.postRepository.loadReferencesForPost(thread);
 
       await this.fileRepository.loadForPosts(thread.replies);
+      await this.embedRepository.loadForPosts(thread.replies);
       await this.postRepository.loadReferencesForPosts(thread.replies);
 
       this.queue.publish('thread_created', thread.getData());
@@ -169,10 +182,12 @@ export class ThreadController {
     thread = await board.deleteThread(this.threadRepository, this.fileRepository, threadId);
 
     await this.fileRepository.loadForPost(thread);
+    await this.embedRepository.loadForPost(thread);
     await this.postRepository.loadLatestRepliesForThread(thread);
     await this.postRepository.loadReferencesForPost(thread);
 
     await this.fileRepository.loadForPosts(thread.replies);
+    await this.embedRepository.loadForPosts(thread.replies);
     await this.postRepository.loadReferencesForPosts(thread.replies);
 
     this.queue.publish('thread_deleted', thread.getData());

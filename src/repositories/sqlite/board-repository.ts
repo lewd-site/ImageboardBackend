@@ -12,7 +12,6 @@ interface BoardDto {
 
 export class SqliteBoardRepository extends SqliteRepository implements IBoardRepository {
   protected static readonly PER_PAGE = 100;
-  protected static readonly MS_IN_SECOND = 1000;
 
   public async browse(page: number = 0): Promise<Board[]> {
     const limit = SqliteBoardRepository.PER_PAGE;

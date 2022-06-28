@@ -22,8 +22,6 @@ interface FileDto {
 }
 
 export class PgsqlFileRepository extends PgsqlRepository implements IFileRepository {
-  protected static readonly MS_IN_SECOND = 1000;
-
   public constructor(client: ClientBase, protected readonly postAttributesRepository: PgsqlPostAttributesRepository) {
     super(client);
   }

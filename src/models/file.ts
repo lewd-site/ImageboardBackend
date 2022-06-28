@@ -32,6 +32,7 @@ export class File {
     'audio/x-wav',
     'audio/vnd.wave',
   ];
+
   public static readonly ALLOWED_THUMBNAIL_EXTENSIONS = ['webp', 'jpg', 'png'];
 
   public constructor(

@@ -1,6 +1,8 @@
 import { NotFoundError, ValidationError } from '../errors';
+import OEmbed from '../oembed';
 import Board from './board';
 import IBoardRepository from './board-repository';
+import Embed, { EmbedDto } from './embed';
 import File, { FileDto } from './file';
 import IFileRepository from './file-repository';
 import { IParser, ITokenizer, Node } from './markup';
@@ -20,6 +22,7 @@ export interface ThreadDto {
   readonly message: string;
   readonly message_parsed: Node[];
   readonly files: FileDto[];
+  readonly embeds: EmbedDto[];
   readonly replies?: PostDto[];
   readonly references: PostReferenceDto[];
   readonly referenced_by: PostReferenceDto[];
@@ -35,6 +38,7 @@ export class Thread {
   public static readonly BUMP_LIMIT = 500;
 
   public readonly files: File[] = [];
+  public readonly embeds: Embed[] = [];
   public readonly replies: Post[] = [];
   public readonly references: PostReference[] = [];
   public readonly referencedBy: PostReference[] = [];
@@ -61,6 +65,7 @@ export class Thread {
     tripcodeGenerator: ITripcodeGenerator,
     tokenizer: ITokenizer,
     parser: IParser,
+    oembed: OEmbed,
     name: string,
     message: string,
     files: FileInfo[],
@@ -80,7 +85,7 @@ export class Thread {
 
     const author = tripcodeGenerator.createTripcode(name);
     const tokens = tokenizer.tokenize(message);
-    const parsedMessage = await this.board.processParsedMessage(postRepository, parser.parse(tokens));
+    const parsedMessage = await this.board.processParsedMessage(postRepository, oembed, parser.parse(tokens));
 
     let post: Post | null = null;
 
@@ -151,6 +156,7 @@ export class Thread {
       message: this.message,
       message_parsed: this.parsedMessage,
       files: this.files.map((file) => file.getData()),
+      embeds: this.embeds.map((embed) => embed.getData()),
       replies: this.replies.map((reply) => reply.getData()),
       references: this.references.map(getPostReferenceData),
       referenced_by: this.referencedBy.map(getPostReferenceData),

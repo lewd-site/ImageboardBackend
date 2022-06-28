@@ -2,6 +2,7 @@ import { unlink } from 'fs/promises';
 import Koa from 'koa';
 import { NotFoundError } from '../../errors';
 import IBoardRepository from '../../models/board-repository';
+import IEmbedRepository from '../../models/embed-repository';
 import FileManager from '../../models/file-manager';
 import IFileRepository from '../../models/file-repository';
 import { IParser, ITokenizer } from '../../models/markup';
@@ -11,6 +12,7 @@ import ITripcodeGenerator from '../../models/tripcode-generator';
 import { convertMulterFileToUploadedFile } from '../../models/types';
 import IQueue from '../../models/queue';
 import { fileExists } from '../../utils';
+import OEmbed from '../../oembed';
 
 export class PostController {
   public constructor(
@@ -18,6 +20,8 @@ export class PostController {
     protected readonly threadRepository: IThreadRepository,
     protected readonly postRepository: IPostRepository,
     protected readonly fileRepository: IFileRepository,
+    protected readonly embedRepository: IEmbedRepository,
+    protected readonly oembed: OEmbed,
     protected readonly queue: IQueue,
     protected readonly tripcodeGenerator: ITripcodeGenerator,
     protected readonly tokenizer: ITokenizer,
@@ -43,6 +47,7 @@ export class PostController {
 
       const posts = await this.postRepository.browseForThread(threadId);
       await this.fileRepository.loadForPosts(posts);
+      await this.embedRepository.loadForPosts(posts);
       await this.postRepository.loadReferencesForPosts(posts);
 
       return (ctx.body = { items: posts.map((post) => post.getData()) });
@@ -57,6 +62,7 @@ export class PostController {
 
       const posts = await this.postRepository.browseForBoard(board.id);
       await this.fileRepository.loadForPosts(posts);
+      await this.embedRepository.loadForPosts(posts);
       await this.postRepository.loadReferencesForPosts(posts);
 
       return (ctx.body = { items: posts.map((post) => post.getData()) });
@@ -64,6 +70,7 @@ export class PostController {
 
     const posts = await this.postRepository.browse();
     await this.fileRepository.loadForPosts(posts);
+    await this.embedRepository.loadForPosts(posts);
     await this.postRepository.loadReferencesForPosts(posts);
 
     ctx.body = { items: posts.map((post) => post.getData()) };
@@ -93,6 +100,7 @@ export class PostController {
     }
 
     await this.fileRepository.loadForPost(post);
+    await this.embedRepository.loadForPost(post);
     await this.postRepository.loadReferencesForPost(post);
 
     ctx.body = { item: post.getData() };
@@ -135,6 +143,7 @@ export class PostController {
         this.tripcodeGenerator,
         this.tokenizer,
         this.parser,
+        this.oembed,
         name,
         message,
         files,
@@ -144,6 +153,7 @@ export class PostController {
       await this.fileManager.moveFiles(files);
 
       await this.fileRepository.loadForPost(post);
+      await this.embedRepository.loadForPost(post);
       await this.postRepository.loadReferencesForPost(post);
 
       this.queue.publish('post_created', post.getData());
@@ -193,6 +203,7 @@ export class PostController {
     post = await thread.deletePost(this.postRepository, this.fileRepository, id);
 
     await this.fileRepository.loadForPost(post);
+    await this.embedRepository.loadForPost(post);
     await this.postRepository.loadReferencesForPost(post);
 
     this.queue.publish('post_deleted', post.getData());

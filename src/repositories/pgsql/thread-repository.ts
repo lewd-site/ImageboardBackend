@@ -1,5 +1,6 @@
 import { ClientBase } from 'pg';
 import Board from '../../models/board';
+import IEmbedRepository from '../../models/embed-repository';
 import { Node } from '../../models/markup';
 import Thread from '../../models/thread';
 import IThreadRepository from '../../models/thread-repository';
@@ -29,9 +30,12 @@ interface ThreadDto {
 
 export class PgsqlThreadRepository extends PgsqlRepository implements IThreadRepository {
   protected static readonly PER_PAGE = 10;
-  protected static readonly MS_IN_SECOND = 1000;
 
-  public constructor(client: ClientBase, protected readonly postAttributesRepository: PgsqlPostAttributesRepository) {
+  public constructor(
+    client: ClientBase,
+    protected readonly postAttributesRepository: PgsqlPostAttributesRepository,
+    protected readonly embedRepository: IEmbedRepository
+  ) {
     super(client);
   }
 
@@ -161,6 +165,17 @@ export class PgsqlThreadRepository extends PgsqlRepository implements IThreadRep
     }
   }
 
+  protected async addEmbeds(postId: number, nodes: Node[]): Promise<void> {
+    for (const node of nodes) {
+      if (node.type === 'link') {
+        const embed = await this.embedRepository.readByUrl(node.url);
+        if (embed !== null) {
+          this.embedRepository.addPostEmbedLink(postId, embed.id);
+        }
+      }
+    }
+  }
+
   public async add(
     boardId: number,
     subject: string,
@@ -199,6 +214,7 @@ export class PgsqlThreadRepository extends PgsqlRepository implements IThreadRep
     const result = await this.client.query(sql, params);
     const id = +result.rows[0].id;
     await this.addReferences(id, parsedMessage);
+    await this.addEmbeds(id, parsedMessage);
 
     return this.read(id);
   }

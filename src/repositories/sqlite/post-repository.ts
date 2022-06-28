@@ -1,5 +1,6 @@
 import sqlite3 from 'sqlite3';
 import Board from '../../models/board';
+import IEmbedRepository from '../../models/embed-repository';
 import { Node } from '../../models/markup';
 import Post from '../../models/post';
 import IPostRepository from '../../models/post-repository';
@@ -28,11 +29,11 @@ interface PostDto {
 
 export class SqlitePostRepository extends SqliteRepository implements IPostRepository {
   protected static readonly PER_PAGE = 100;
-  protected static readonly MS_IN_SECOND = 1000;
 
   public constructor(
     db: sqlite3.Database,
-    protected readonly postAttributesRepository: SqlitePostAttributesRepository
+    protected readonly postAttributesRepository: SqlitePostAttributesRepository,
+    protected readonly embedRepository: IEmbedRepository
   ) {
     super(db);
   }
@@ -137,6 +138,17 @@ export class SqlitePostRepository extends SqliteRepository implements IPostRepos
     return this.addReferences(post.id, post.parsedMessage);
   }
 
+  protected async addEmbeds(postId: number, nodes: Node[]): Promise<void> {
+    for (const node of nodes) {
+      if (node.type === 'link') {
+        const embed = await this.embedRepository.readByUrl(node.url);
+        if (embed !== null) {
+          this.embedRepository.addPostEmbedLink(postId, embed.id);
+        }
+      }
+    }
+  }
+
   public async add(
     boardId: number,
     parentId: number,
@@ -168,6 +180,7 @@ export class SqlitePostRepository extends SqliteRepository implements IPostRepos
     const result = await this.runAsync(sql, params);
     const id = result.lastID;
     await this.addReferences(id, parsedMessage);
+    await this.addEmbeds(id, parsedMessage);
 
     return this.read(id);
   }

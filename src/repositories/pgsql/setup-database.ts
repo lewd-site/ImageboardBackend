@@ -78,4 +78,27 @@ export async function setupDatabase(client: ClientBase) {
 
   await client.query(`CREATE INDEX IF NOT EXISTS post_references_source_id_idx ON post_references (source_id)`);
   await client.query(`CREATE INDEX IF NOT EXISTS post_references_target_id_idx ON post_references (target_id)`);
+
+  await client.query(`CREATE TABLE IF NOT EXISTS embeds (
+    id serial PRIMARY KEY,
+    type varchar(255) NOT NULL,
+    name varchar(255) NOT NULL,
+    url varchar(255) NOT NULL UNIQUE,
+    width integer NOT NULL,
+    height integer NOT NULL,
+    thumbnail_url varchar(255) NOT NULL,
+    thumbnail_width integer NOT NULL,
+    thumbnail_height integer NOT NULL,
+    created_at timestamp with time zone NOT NULL
+  )`);
+
+  await client.query(`CREATE INDEX IF NOT EXISTS embeds_url_idx ON embeds (utl)`);
+
+  await client.query(`CREATE TABLE IF NOT EXISTS posts_embeds (
+    id serial PRIMARY KEY,
+    post_id integer NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
+    embed_id integer NOT NULL REFERENCES embeds (id) ON DELETE CASCADE
+  )`);
+
+  await client.query(`CREATE INDEX IF NOT EXISTS posts_embeds_post_id_idx ON posts_embeds (post_id)`);
 }

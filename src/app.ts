@@ -40,8 +40,10 @@ import {
   BOARD_REPOSITORY,
   CONNECTION,
   CONNECTION_FACTORY,
+  EMBED_REPOSITORY,
   FILE_CONTROLLER,
   FILE_REPOSITORY,
+  OEMBED,
   POST_CONTROLLER,
   POST_REPOSITORY,
   QUEUE,
@@ -49,6 +51,8 @@ import {
   THREAD_CONTROLLER,
   THREAD_REPOSITORY,
 } from './services';
+import IEmbedRepository from './models/embed-repository';
+import OEmbed from './oembed';
 
 const MS_IN_WEEK = 1000 * 60 * 60 * 24 * 7;
 
@@ -125,6 +129,20 @@ export function registerScopedServices(container: Container) {
     },
   });
 
+  container.registerFactory(EMBED_REPOSITORY, {
+    async create() {
+      const repositoryFactory = await container.resolve<IRepositoryFactory>(REPOSITORY_FACTORY);
+      return repositoryFactory.createEmbedRepository();
+    },
+  });
+
+  container.registerFactory(OEMBED, {
+    async create() {
+      const embedRepository = await container.resolve<IEmbedRepository>(EMBED_REPOSITORY);
+      return new OEmbed(embedRepository);
+    },
+  });
+
   container.registerFactory(BOARD_CONTROLLER, {
     async create() {
       const boardRepository = await container.resolve<IBoardRepository>(BOARD_REPOSITORY);
@@ -142,6 +160,8 @@ export function registerScopedServices(container: Container) {
       const threadRepository = await container.resolve<IThreadRepository>(THREAD_REPOSITORY);
       const postRepository = await container.resolve<IPostRepository>(POST_REPOSITORY);
       const fileRepository = await container.resolve<IFileRepository>(FILE_REPOSITORY);
+      const embedRepository = await container.resolve<IEmbedRepository>(EMBED_REPOSITORY);
+      const oembed = await container.resolve<OEmbed>(OEMBED);
       const queue = await container.resolve<IQueue>(QUEUE);
       const tripcodeGenerator = new WakabaTripcodeGenerator();
       const tokenizer = new Tokenizer();
@@ -154,6 +174,8 @@ export function registerScopedServices(container: Container) {
         threadRepository,
         postRepository,
         fileRepository,
+        embedRepository,
+        oembed,
         queue,
         tripcodeGenerator,
         tokenizer,
@@ -170,6 +192,8 @@ export function registerScopedServices(container: Container) {
       const threadRepository = await container.resolve<IThreadRepository>(THREAD_REPOSITORY);
       const postRepository = await container.resolve<IPostRepository>(POST_REPOSITORY);
       const fileRepository = await container.resolve<IFileRepository>(FILE_REPOSITORY);
+      const embedRepository = await container.resolve<IEmbedRepository>(EMBED_REPOSITORY);
+      const oembed = await container.resolve<OEmbed>(OEMBED);
       const queue = await container.resolve<IQueue>(QUEUE);
       const tripcodeGenerator = new WakabaTripcodeGenerator();
       const tokenizer = new Tokenizer();
@@ -182,6 +206,8 @@ export function registerScopedServices(container: Container) {
         threadRepository,
         postRepository,
         fileRepository,
+        embedRepository,
+        oembed,
         queue,
         tripcodeGenerator,
         tokenizer,

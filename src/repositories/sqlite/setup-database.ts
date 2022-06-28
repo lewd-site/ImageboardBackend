@@ -81,6 +81,29 @@ export async function setupDatabase(db: sqlite3.Database) {
       db.run(`CREATE INDEX IF NOT EXISTS post_references_source_id_idx ON post_references (source_id)`);
       db.run(`CREATE INDEX IF NOT EXISTS post_references_target_id_idx ON post_references (target_id)`);
 
+      db.run(`CREATE TABLE IF NOT EXISTS embeds (
+        id INTEGER NOT NULL PRIMARY KEY,
+        type TEXT NOT NULL,
+        name TEXT NOT NULL,
+        url TEXT NOT NULL UNIQUE,
+        width INTEGER NOT NULL,
+        height INTEGER NOT NULL,
+        thumbnail_url TEXT NOT NULL,
+        thumbnail_width INTEGER NOT NULL,
+        thumbnail_height INETEGER NOT NULL,
+        created_at INTEGER NOT NULL
+      )`);
+
+      db.run(`CREATE INDEX IF NOT EXISTS embeds_url_idx ON embeds (url)`);
+
+      db.run(`CREATE TABLE IF NOT EXISTS posts_embeds (
+        id INTEGER NOT NULL PRIMARY KEY,
+        post_id INTEGER NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
+        embed_id INTEGER NOT NULL REFERENCES embeds (id) ON DELETE CASCADE
+      )`);
+
+      db.run(`CREATE INDEX IF NOT EXISTS posts_embeds_post_id_idx ON posts_embeds (post_id)`);
+
       resolve();
     });
   });

@@ -22,8 +22,6 @@ interface FileDto {
 }
 
 export class SqliteFileRepository extends SqliteRepository implements IFileRepository {
-  protected static readonly MS_IN_SECOND = 1000;
-
   public constructor(
     db: sqlite3.Database,
     protected readonly postAttributesRepository: SqlitePostAttributesRepository

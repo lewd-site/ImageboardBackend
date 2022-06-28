@@ -14,7 +14,14 @@ import Post from './models/post';
 import IPostRepository from './models/post-repository';
 import Thread from './models/thread';
 import IThreadRepository from './models/thread-repository';
-import registerServices, { BOARD_REPOSITORY, FILE_REPOSITORY, POST_REPOSITORY, THREAD_REPOSITORY } from './services';
+import OEmbed from './oembed';
+import registerServices, {
+  BOARD_REPOSITORY,
+  FILE_REPOSITORY,
+  OEMBED,
+  POST_REPOSITORY,
+  THREAD_REPOSITORY,
+} from './services';
 
 interface ThreadDto {
   readonly id: number;
@@ -157,6 +164,7 @@ async function importPosts(
   threadRepository: IThreadRepository,
   postRepository: IPostRepository,
   fileRepository: IFileRepository,
+  oembed: OEmbed,
   threadsData: ThreadDto[]
 ) {
   const postsData: (PostDto | ThreadDto)[] = [...threadsData];
@@ -179,12 +187,20 @@ async function importPosts(
     }
 
     if (isThreadData(postData)) {
-      const thread = await importThread(threadRepository, postRepository, fileRepository, board, postData, postIdMap);
+      const thread = await importThread(
+        threadRepository,
+        postRepository,
+        fileRepository,
+        oembed,
+        board,
+        postData,
+        postIdMap
+      );
       threadIdMap[postData.id] = thread.id;
       postIdMap[postData.id] = thread.id;
     } else {
       const parentId = threadIdMap[postData.parent_id];
-      const post = await importPost(postRepository, fileRepository, board, parentId, postData, postIdMap);
+      const post = await importPost(postRepository, fileRepository, oembed, board, parentId, postData, postIdMap);
       postIdMap[postData.id] = post.id;
     }
 
@@ -204,6 +220,7 @@ async function importThread(
   threadRepository: IThreadRepository,
   postRepository: IPostRepository,
   fileRepository: IFileRepository,
+  oembed: OEmbed,
   board: Board,
   threadData: ThreadDto,
   postIdMap: IdMap
@@ -211,7 +228,7 @@ async function importThread(
   let parsedMessage = threadData.message_parsed;
   if (!parsedMessage.length) {
     const tokens = tokenizer.tokenize(threadData.message);
-    parsedMessage = await board.processParsedMessage(postRepository, parser.parse(tokens));
+    parsedMessage = await board.processParsedMessage(postRepository, oembed, parser.parse(tokens));
   }
 
   const thread = await threadRepository.add(
@@ -240,6 +257,7 @@ async function importThread(
 async function importPost(
   postRepository: IPostRepository,
   fileRepository: IFileRepository,
+  oembed: OEmbed,
   board: Board,
   parentId: number,
   postData: PostDto,
@@ -248,7 +266,7 @@ async function importPost(
   let parsedMessage = postData.message_parsed;
   if (!parsedMessage.length) {
     const tokens = tokenizer.tokenize(postData.message);
-    parsedMessage = await board.processParsedMessage(postRepository, parser.parse(tokens));
+    parsedMessage = await board.processParsedMessage(postRepository, oembed, parser.parse(tokens));
   }
 
   const post = await postRepository.add(
@@ -351,20 +369,22 @@ async function main() {
           const threadRepository = await container.resolve<IThreadRepository>(THREAD_REPOSITORY);
           const postRepository = await container.resolve<IPostRepository>(POST_REPOSITORY);
           const fileRepository = await container.resolve<IFileRepository>(FILE_REPOSITORY);
+          const oembed = await container.resolve<OEmbed>(OEMBED);
 
           const data = await readFile(process.argv[3], 'utf8');
           const threads: ThreadDto[] = JSON.parse(data);
-          await importPosts(boardRepository, threadRepository, postRepository, fileRepository, threads);
+          await importPosts(boardRepository, threadRepository, postRepository, fileRepository, oembed, threads);
           break;
         }
 
         case 'process-markup': {
           const postRepository = await container.resolve<IPostRepository>(POST_REPOSITORY);
+          const oembed = await container.resolve<OEmbed>(OEMBED);
           const posts = await postRepository.browse();
           let index = 0;
           for (const post of posts) {
             const tokens = tokenizer.tokenize(post.message);
-            const parsedMessage = await post.board.processParsedMessage(postRepository, parser.parse(tokens));
+            const parsedMessage = await post.board.processParsedMessage(postRepository, oembed, parser.parse(tokens));
             await postRepository.updateMessage(post.id, post.message, parsedMessage);
             console.log(`${++index}/${posts.length}`);
           }

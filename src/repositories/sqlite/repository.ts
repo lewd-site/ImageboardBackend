@@ -1,6 +1,8 @@
 import sqlite3 from 'sqlite3';
 
 export abstract class SqliteRepository {
+  protected static readonly MS_IN_SECOND = 1000;
+
   public constructor(protected readonly db: sqlite3.Database) {}
 
   public async begin(): Promise<void> {
