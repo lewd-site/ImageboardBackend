@@ -103,7 +103,7 @@ export class SqliteEmbedRepository extends SqliteRepository implements IEmbedRep
   }
 
   public async addPostEmbedLink(postId: number, embedId: number): Promise<void> {
-    const sql = `INSERT INTO posts_embeds (post_id, embed_id)
+    const sql = `INSERT OR IGNORE INTO posts_embeds (post_id, embed_id)
       VALUES (?, ?)`;
 
     await this.runAsync(sql, [postId, embedId]);

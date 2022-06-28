@@ -9,6 +9,7 @@ export interface IPostRepository extends IRepository {
   browseForThread(threadId: number): Promise<Post[]>;
   read(id: number): Promise<Post | null>;
   addPostReferences(post: Post): Promise<void>;
+  addPostEmbeds(post: Post): Promise<void>;
   add(
     boardId: number,
     parentId: number,

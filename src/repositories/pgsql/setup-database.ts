@@ -97,7 +97,8 @@ export async function setupDatabase(client: ClientBase) {
   await client.query(`CREATE TABLE IF NOT EXISTS posts_embeds (
     id serial PRIMARY KEY,
     post_id integer NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
-    embed_id integer NOT NULL REFERENCES embeds (id) ON DELETE CASCADE
+    embed_id integer NOT NULL REFERENCES embeds (id) ON DELETE CASCADE,
+    UNIQUE (post_id, embed_id)
   )`);
 
   await client.query(`CREATE INDEX IF NOT EXISTS posts_embeds_post_id_idx ON posts_embeds (post_id)`);

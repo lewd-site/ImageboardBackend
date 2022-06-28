@@ -149,6 +149,10 @@ export class PgsqlPostRepository extends PgsqlRepository implements IPostReposit
     }
   }
 
+  public addPostEmbeds(post: Post): Promise<void> {
+    return this.addEmbeds(post.id, post.parsedMessage);
+  }
+
   public async add(
     boardId: number,
     parentId: number,

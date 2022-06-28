@@ -99,7 +99,8 @@ export async function setupDatabase(db: sqlite3.Database) {
       db.run(`CREATE TABLE IF NOT EXISTS posts_embeds (
         id INTEGER NOT NULL PRIMARY KEY,
         post_id INTEGER NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
-        embed_id INTEGER NOT NULL REFERENCES embeds (id) ON DELETE CASCADE
+        embed_id INTEGER NOT NULL REFERENCES embeds (id) ON DELETE CASCADE,
+        UNIQUE (post_id, embed_id)
       )`);
 
       db.run(`CREATE INDEX IF NOT EXISTS posts_embeds_post_id_idx ON posts_embeds (post_id)`);

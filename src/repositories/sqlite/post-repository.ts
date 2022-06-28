@@ -149,6 +149,10 @@ export class SqlitePostRepository extends SqliteRepository implements IPostRepos
     }
   }
 
+  public addPostEmbeds(post: Post): Promise<void> {
+    return this.addEmbeds(post.id, post.parsedMessage);
+  }
+
   public async add(
     boardId: number,
     parentId: number,

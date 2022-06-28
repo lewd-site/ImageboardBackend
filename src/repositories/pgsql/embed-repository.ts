@@ -105,7 +105,7 @@ export class PgsqlEmbedRepository extends PgsqlRepository implements IEmbedRepos
 
   public async addPostEmbedLink(postId: number, embedId: number): Promise<void> {
     const sql = `INSERT INTO posts_embeds (post_id, embed_id)
-      VALUES ($1, $2)`;
+      VALUES ($1, $2) ON CONFLICT DO NOTHING`;
 
     await this.client.query(sql, [postId, embedId]);
   }

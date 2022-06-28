@@ -404,6 +404,18 @@ async function main() {
           break;
         }
 
+        case 'process-embeds': {
+          const postRepository = await container.resolve<IPostRepository>(POST_REPOSITORY);
+          const posts = await postRepository.browse();
+          let index = 0;
+          for (const post of posts) {
+            await postRepository.addPostEmbeds(post);
+            console.log(`${++index}/${posts.length}`);
+          }
+
+          break;
+        }
+
         default:
           console.error(`Unknown command '${process.argv[2]}'`);
           break;
